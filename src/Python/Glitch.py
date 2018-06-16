@@ -49,18 +49,23 @@ def make_padded_h(self, t):
 
 def get_integrated_wavelet(self, xi):
 	
-	a1 = (xi - self.t0)/self.tau
-	a2 = np.pi*self.f0*self.tau
+	if (self.A == 0):
+		return np.zeros(len(xi))
+	else:
+		alpha = (xi - self.t0)/self.tau
+		beta  = np.pi*self.f0*self.tau
 	
-	arg1 = a1 + 1.0j*a2
+		arg = alpha + 1.0j*beta
+		
+		phase = np.exp(-1.0j*self.phi0)
 	
-	temp1 = ss.erf(arg1)*np.exp(-1.0j*self.phi0)
-
-	result = temp1.real
-# 	
-	result = result.real
-	result = result*np.sqrt(np.pi)*0.5*self.A*self.tau*np.exp(-(self.f0*np.pi*self.tau)**2)
-	
+		term1 = phase.real*np.exp(-beta**2.0)
+		
+		term2 = ss.erfcx(arg)*np.exp(-arg**2-beta**2)*phase
+		term2 = term2.real
+		
+		result = np.sqrt(np.pi)*0.5*self.A*self.tau*(term1 - term2)
+		
 	return result
 
 class Wavelet:
@@ -74,11 +79,11 @@ class Wavelet:
 		self.phi0   = phi0
 		self.Q  = 2.*np.pi*self.f0*self.tau
 		
-		# will be modified
-		self.t_min = self.t0 - 4.*self.tau
-		self.t_max = self.t0 + 4.*self.tau
+		# Todo: smarter choices for these bounds
+		self.t_min = self.t0 - 3.*self.tau
+		self.t_max = self.t0 + 3.*self.tau
 		
-		# TODO: NEEDS CAREFUL CONSIDERATION FOR WHAT THESE BOUNDS SHOULD BE
+		# Todo: smarter choices for these bounds, probably SNR dependent
 		self.f_min = self.f0 - 3./self.tau
 		self.f_max = self.f0 + 3./self.tau
 						
@@ -339,6 +344,13 @@ class GW_glitch:
 		# need to get a common times associated with sampling the wavelets
 		self.t_min = np.min([self.hp_wavelet.t_min, self.hc_wavelet.t_min])
 		self.t_max = np.max([self.hp_wavelet.t_max, self.hc_wavelet.t_max])
+		
+		# if light travel time from SSB to LISA is longer than tau
+		# 		add an extra buffer
+		#		Todo: Make this a bit smarter
+		if (self.hp_wavelet.tau < 3.*8.0*60. or self.hc_wavelet.tau < 3.*8.0*60.):
+			self.t_min = self.t_min - 3.*8.0*60.
+			self.t_max = self.t_max + 3.*8.0*60.
 	
 		set_GW_indices(self, self.Orbit)
 		set_t(self, self.Orbit)
