@@ -158,9 +158,10 @@ class Orbit:
 		if (self.type != 'analytic'):
 			raise ValueError("Orbit type incorrect or not supported! We currently only support 'analytic'.")
 			
-		self.kappa = kappa   # initial azimuthal position of guiding center
-		self.Lambda = Lambda # initial orientation of LISA constellation
-		self.dt = dt         # cadence (sec)
+		self.kappa = kappa          # initial azimuthal position of guiding center
+		self.Lambda = Lambda        # initial orientation of LISA constellation
+		self.dt = dt                # cadence (sec)
+		self.f_ny = 1./(2.*self.dt) # Nyquist frequency (Hz)
 		
 		# throw an if number of samples is not a power of 2
 		num = np.int(self.Tobs/self.dt)

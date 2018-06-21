@@ -5,36 +5,27 @@ import LISA as l
 
 def evaluate_wavelet(self, t):
 	"""
-	Return the value of the wavelet at specified t
+	Return the value of the Sine-Gaussian wavelet at time(s) t
+	
+	input:
+		self - (Wavelet)
+		t    - (float (array)) time(s) at which to evaluate the wavelet
+		
+	output:
+		result - (float (array)) the wavelet evaluated
 	"""	
 		
-	result = np.cos(2.*np.pi*self.f0*(t-self.t0)+self.phi0)*np.exp(-(t-self.t0)**2./(self.tau**2.))*self.A
-# 		
-# 	if (self.domain == 'frequency'):
-# 		raise ValueError("'freqeuency' domain not yet supported. Please use 'time'")
-		
-	return result
+	arg1 = 2.*np.pi*self.f0*(t-self.t0) + self.phi0
+	arg2 = (t - self.t0)**2./(self.tau**2.)
 	
-	
-def set_indexes(self, Orbit):
+	result = self.A*np.cos(arg1)*np.exp(-arg2)
 
-	self.idx_left  = int(self.t_min/Orbit.dt)
-	self.idx_right = int(self.t_max/Orbit.dt)
-	
-	if (self.idx_left == self.idx_right):
-		self.idx_left  = self.idx_left  - 1
-		self.idx_right = self.idx_right + 1
-	
-	# must reset these values to detector times
-	self.t_min     = self.idx_left*Orbit.dt
-	self.t_max     = self.idx_right*Orbit.dt
-	
-	return
+	return result
 	
 def set_t_h(self, Orbit):
 	
 	self.t = np.arange(self.t_min, self.t_max, Orbit.dt)
-	self.h = self.get_h(self.t)
+	self.h = self.get_Psi(self.t)
 	
 	return
 	
@@ -47,12 +38,22 @@ def make_padded_h(self, t):
 	
 	return
 
-def get_integrated_wavelet(self, xi):
+def get_integrated_wavelet(self, t):
+	"""
+	Evaluate the integral of a Sine-Gaussian from 0 to time(s) t
 	
+	input:
+		self - (Wavelet) 
+		t    - (float (array)) time(s) at which to evaluate the wavelet
+		
+	output:
+		result - (float (array)) result of the integration
+	"""
+	# don't waste evaluating a non-existant wavelet
 	if (self.A == 0):
 		return np.zeros(len(xi))
 	else:
-		alpha = (xi - self.t0)/self.tau
+		alpha = (t - self.t0)/self.tau
 		beta  = np.pi*self.f0*self.tau
 	
 		arg = alpha + 1.0j*beta
@@ -61,40 +62,76 @@ def get_integrated_wavelet(self, xi):
 	
 		term1 = phase.real*np.exp(-beta**2.0)
 		
-		term2 = ss.erfcx(arg)*np.exp(-arg**2-beta**2)*phase
+		huh = ss.erfcx(arg)
+		
+		# if the real argument of erfcx is too large, it blows up, 
+		#		do the normal way
+		if (len(np.isnan(huh)) != 0):
+			result = ss.erf(arg)*phase
+			result = np.sqrt(np.pi)*0.5*self.A*self.tau*result.real
+			return result
+		
+		term2 = huh*np.exp(-arg**2-beta**2)*phase
 		term2 = term2.real
 		
 		result = np.sqrt(np.pi)*0.5*self.A*self.tau*(term1 - term2)
-		
+	
 	return result
 
+
 class Wavelet:
-	kind = 'Morlet-Gabor Wavelet'
+	"""
+	Sine-Gaussian wavelet class
+	"""
+	kind = 'Sine-Gaussian'
 	
-	def __init__(self, A, f0, tau, t0, phi0):
+	def __init__(self, A, f0, tau, t0, phi0, Orbit):
+
+		if (A < 0.0):
+			raise ValueError("Amplitude was negative.")
+			
 		self.A      = A
 		self.f0     = f0
 		self.tau    = tau
 		self.t0     = t0
 		self.phi0   = phi0
-		self.Q  = 2.*np.pi*self.f0*self.tau
+		self.Q      = np.pi*self.f0*self.tau
 		
 		# Todo: smarter choices for these bounds
+		#			doesn't seem good when tau ~ 1/f0
 		self.t_min = self.t0 - 3.*self.tau
 		self.t_max = self.t0 + 3.*self.tau
+		
+		# adjust to times LISA actually sampled
+		self.t_min = int(self.t_min/Orbit.dt)*Orbit.dt
+		self.t_max = int(self.t_max/Orbit.dt)*Orbit.dt
+		
+		# incase burst is shorter than detector sampling rate
+		if (self.t_min == self.t_max):
+			self.t_max = self.t_min + Orbit.dt
+		
+		# Todo: how to make sure time doesn't exceed LISA observation times
+		if (self.t_min < 0.0): # ensure time is positive
+			self.t_min = 0.0
 		
 		# Todo: smarter choices for these bounds, probably SNR dependent
 		self.f_min = self.f0 - 3./self.tau
 		self.f_max = self.f0 + 3./self.tau
+		
+		# catch to make sure negative frequencies aren't asked for
+		if (self.f_min < 0.0): 
+			self.f_min = 0.0
+		# ensure max frequency is not greater than the Nyquist frequency
+		if (self.f_max > Orbit.f_ny):
+			self.f_max = Orbit.f_ny
 						
 		
 	# methods
-	get_h = evaluate_wavelet
-	set_indexes = set_indexes
-	set_t_h = set_t_h
-	make_padded_h = make_padded_h
-	
+	get_Psi                = evaluate_wavelet
+	set_t_h                = set_t_h
+	make_padded_h          = make_padded_h
 	get_integrated_wavelet = get_integrated_wavelet # more for the GW model
+	
 	
 	
 def FT_phase(self, Orbit):
