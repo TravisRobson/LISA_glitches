@@ -22,19 +22,33 @@ def evaluate_wavelet(self, t):
 
 	return result
 	
-def set_t_h(self, Orbit):
+def calc_Psi(self):
+	"""
+	In the SSB frame, calculate relevant times and sample the wavelet
 	
-	self.t = np.arange(self.t_min, self.t_max, Orbit.dt)
-	self.h = self.get_Psi(self.t)
+	input:
+		self - (Wavelet)
+	"""
+	self.t = np.arange(self.t_min, self.t_max, self.Orbit.dt)
+	self.Psi = self.get_Psi(self.t)
 	
 	return
 	
-def make_padded_h(self, t):
+def make_padded_Psi(self, t):
+	"""
+	Pad the wavelet's internal Psi to match shape of the provided time series
 	
+	input: 
+		self - (Wavelet)
+		t 	 - (float (Array)) time series for Psi_padded to match
+	"""
+	
+	# find where input time array bounds matches the wavelet's native time array
 	left_pad  = np.argwhere(t == self.t[0] ).flatten()[0]
 	right_pad = len(t) - 1 - np.argwhere(t == self.t[-1]).flatten()[0]
 
-	self.h_padded = np.pad(self.h, (left_pad,right_pad), 'constant')
+	self.Psi_padded = np.pad(self.Psi, (left_pad,right_pad), 'constant')
+#	self.t_full = np.copy(t)
 	
 	return
 
@@ -65,7 +79,7 @@ def get_integrated_wavelet(self, t):
 		huh = ss.erfcx(arg)
 		
 		# if the real argument of erfcx is too large, it blows up, 
-		#		do the normal way
+		#		do the straightforward way
 		if (len(np.isnan(huh)) != 0):
 			result = ss.erf(arg)*phase
 			result = np.sqrt(np.pi)*0.5*self.A*self.tau*result.real
@@ -86,9 +100,6 @@ class Wavelet:
 	kind = 'Sine-Gaussian'
 	
 	def __init__(self, A, f0, tau, t0, phi0, Orbit):
-
-		if (A < 0.0):
-			raise ValueError("Amplitude was negative.")
 			
 		self.A      = A
 		self.f0     = f0
@@ -96,6 +107,7 @@ class Wavelet:
 		self.t0     = t0
 		self.phi0   = phi0
 		self.Q      = np.pi*self.f0*self.tau
+		self.Orbit  = Orbit
 		
 		# Todo: smarter choices for these bounds
 		#			doesn't seem good when tau ~ 1/f0
@@ -128,8 +140,8 @@ class Wavelet:
 		
 	# methods
 	get_Psi                = evaluate_wavelet
-	set_t_h                = set_t_h
-	make_padded_h          = make_padded_h
+	calc_Psi               = calc_Psi
+	make_padded_Psi        = make_padded_Psi
 	get_integrated_wavelet = get_integrated_wavelet # more for the GW model
 	
 	
@@ -191,6 +203,141 @@ class TDI:
 		self.A = 1./3.*(2.0*self.X - self.Y - self.Z)
 		self.E = 1./np.sqrt(3.)*(self.Z - self.Y)
 		self.T = 1./3.*(self.X + self.Y + self.Z)
+		
+def create_instrument_glitch_TDI(instrument_glitch_type, SC_on, Wave, Orbit, SC_point=None):
+    """
+    Generate the TDI channels for an instrumental glitch.
+    
+    input:
+    
+    output:
+    
+    """
+    t = np.arange(0.0, Orbit.Tobs, Orbit.dt) # Todo: Don't need Orbit, its in Wavelet
+    N = len(t)
+    
+    # create empty phase first
+    # Todo: be smarter here to save time, i.e. don't twice make phases
+    p12 = Phase(1,2, t, np.zeros(N))
+    p21 = Phase(2,1, t, np.zeros(N))
+    p13 = Phase(1,3, t, np.zeros(N))
+    p31 = Phase(3,1, t, np.zeros(N))
+    p23 = Phase(2,3, t, np.zeros(N))
+    p32 = Phase(3,2, t, np.zeros(N))
+    
+    # Handle a Laser Phase glitch
+    if (instrument_glitch_type == 'Laser Phase'):
+        if (SC_point != None):
+            raise ValueError("Lase noise is from the laser on one S/C")
+            
+        # construct a wavelet whose central time is shifted to t0-L
+        wave_temp = Wavelet(Wave.A, Wave.f0, Wave.tau, \
+                            Wave.t0 - Orbit.L/l.Clight, Wave.phi0, Orbit)
+        wave_temp.calc_Psi()
+        wave_temp.make_padded_Psi(t) 
+                
+        if (SC_on == 1):
+            p12 = Phase(1,2, t, +wave_temp.Psi_padded)
+            p13 = Phase(1,3, t, +wave_temp.Psi_padded)
+            
+            p21 = Phase(2,1, t, -Wave.Psi_padded)
+            p31 = Phase(3,1, t, -Wave.Psi_padded)
+            
+        elif (SC_on == 2):
+            p21 = Phase(2,1, t, +wave_temp.Psi_padded)
+            p23 = Phase(2,3, t, +wave_temp.Psi_padded)
+            
+            p12 = Phase(1,2, t, -Wave.Psi_padded)
+            p32 = Phase(3,2, t, -Wave.Psi_padded)
+
+        elif (SC_on == 3):
+            p31 = Phase(3,1, t, +wave_temp.Psi_padded)
+            p32 = Phase(3,2, t, +wave_temp.Psi_padded)
+            
+            p13 = Phase(1,3, t, -Wave.Psi_padded)
+            p23 = Phase(2,3, t, -Wave.Psi_padded)
+            
+        else:
+            raise ValueError("Invalid SC_on!!!")   
+            
+            
+    # Handle an Optical Path glitch
+    elif (instrument_glitch_type == 'Optical Path'):
+        if (SC_point == None):
+            raise ValueError("Optical Path needs an S/C pointed towards.")
+        if (SC_point == SC_on):
+            raise ValueError("S/C pointed towards must differ from S/C glitch afflicts.")
+        
+        # There is only one Laser Link which gets polluted. Do so.
+        if (SC_on == 1 and SC_point == 2):
+            p12 = Phase(1,2, t, Wave.Psi_padded)
+            
+        elif (SC_on == 2 and SC_point == 1):
+            p21 = Phase(2,1, t, Wave.Psi_padded)
+            
+        elif (SC_on == 1 and SC_point == 3):
+            p13 = Phase(1,3, t, Wave.Psi_padded)
+            
+        elif (SC_on == 3 and SC_point == 1):
+            p31 = Phase(3,1, t, Wave.Psi_padded)
+            
+        elif (SC_on == 2 and SC_point == 3):
+            p23 = Phase(2,3, t, Wave.Psi_padded)
+            
+        elif (SC_on == 3 and SC_point == 2):
+            p32 = Phase(3,2, t, Wave.Psi_padded)
+        else:
+            raise ValueError("Invalid SC_on and/or Sc_point!!!")
+    
+    # Handle an acceleration noise glitch
+    elif (instrument_glitch_type == 'Acceleration'):
+        # construct a wavelet whose central time is shifted to t0-L
+        wave_temp = Wavelet(Wave.A, Wave.f0, Wave.tau, \
+                            Wave.t0 - Orbit.L/l.Clight, Wave.phi0, Orbit)
+        wave_temp.calc_Psi()
+        wave_temp.make_padded_Psi(t) 
+        
+        if (SC_on == 1 and SC_point == 2):
+            p12 = Phase(1,2, t, -Wave.Psi_padded)
+            p21 = Phase(2,1, t, +wave_temp.Psi_padded)
+            
+        elif (SC_on == 1 and SC_point == 3):
+            p13 = Phase(1,3, t, -Wave.Psi_padded)
+            p31 = Phase(3,1, t, +wave_temp.Psi_padded)
+            
+        elif (SC_on == 2 and SC_point == 1):
+            p21 = Phase(2,1, t, -Wave.Psi_padded)
+            p12 = Phase(1,2, t, +wave_temp.Psi_padded)
+            
+        elif (SC_on == 3 and SC_point == 1):
+            p31 = Phase(3,1, t, -Wave.Psi_padded)
+            p13 = Phase(1,3, t, +wave_temp.Psi_padded)
+            
+        elif (SC_on == 2 and SC_point == 3):
+            p23 = Phase(2,3, t, -Wave.Psi_padded)
+            p32 = Phase(3,2, t, +wave_temp.Psi_padded)
+            
+        elif (SC_on == 3 and SC_point == 2):
+            p32 = Phase(3,2, t, -Wave.Psi_padded)
+            p23 = Phase(2,3, t, +wave_temp.Psi_padded)
+            
+        else:
+            raise ValueError("Invalid SC_on and/or Sc_point!!!")
+    
+    else:
+        raise ValueError("Unexpected instrument glitch type. Choose from 'Laser Phase', 'Optical Path', or 'Acceleration")
+    
+    # Fourier transform the time-domain phases
+    p12.FT_phase(Orbit)
+    p21.FT_phase(Orbit)
+    p13.FT_phase(Orbit)
+    p31.FT_phase(Orbit)
+    p23.FT_phase(Orbit)
+    p32.FT_phase(Orbit)
+    
+    tdi = TDI(p12, p21, p13, p31, p23, p32, Orbit)
+    
+    return tdi
 
 
 		
