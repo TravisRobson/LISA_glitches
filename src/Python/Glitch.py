@@ -3,17 +3,10 @@ import scipy.special as ss
 
 import LISA as l
 
+# Todo: Currently, we are assuming L_{ij} = L!!!!
+
 def evaluate_wavelet(self, t):
-	"""
-	Return the value of the Sine-Gaussian wavelet at time(s) t
-	
-	input:
-		self - (Wavelet)
-		t    - (float (array)) time(s) at which to evaluate the wavelet
-		
-	output:
-		result - (float (array)) the wavelet evaluated
-	"""	
+	""" Return the value of the Sine-Gaussian wavelet at time(s) t """	
 		
 	arg1 = 2.*np.pi*self.f0*(t-self.t0) + self.phi0
 	arg2 = (t - self.t0)**2./(self.tau**2.)
@@ -23,25 +16,14 @@ def evaluate_wavelet(self, t):
 	return result
 	
 def calc_Psi(self):
-	"""
-	In the SSB frame, calculate relevant times and sample the wavelet
-	
-	input:
-		self - (Wavelet)
-	"""
+	""" In the SSB frame, calculate relevant times and sample the wavelet """
 	self.t = np.arange(self.t_min, self.t_max, self.Orbit.dt)
 	self.Psi = self.get_Psi(self.t)
 	
 	return
 	
 def make_padded_Psi(self, t):
-	"""
-	Pad the wavelet's internal Psi to match shape of the provided time series
-	
-	input: 
-		self - (Wavelet)
-		t 	 - (float (Array)) time series for Psi_padded to match
-	"""
+	""" Pad the wavelet's internal Psi to match shape of the provided time series """
 	
 	# find where input time array bounds matches the wavelet's native time array
 	left_pad  = np.argwhere(t == self.t[0] ).flatten()[0]
@@ -53,19 +35,10 @@ def make_padded_Psi(self, t):
 	return
 
 def get_integrated_wavelet(self, t):
-	"""
-	Evaluate the integral of a Sine-Gaussian from 0 to time(s) t
-	
-	input:
-		self - (Wavelet) 
-		t    - (float (array)) time(s) at which to evaluate the wavelet
-		
-	output:
-		result - (float (array)) result of the integration
-	"""
+	""" Evaluate the integral of a Sine-Gaussian from 0 to time(s) t """
 	# don't waste evaluating a non-existant wavelet
 	if (self.A == 0):
-		return np.zeros(len(xi))
+		return np.zeros(len(t))
 	else:
 		alpha = (t - self.t0)/self.tau
 		beta  = np.pi*self.f0*self.tau
@@ -94,9 +67,7 @@ def get_integrated_wavelet(self, t):
 
 
 class Wavelet:
-	"""
-	Sine-Gaussian wavelet class
-	"""
+	""" Sine-Gaussian wavelet class """
 	kind = 'Sine-Gaussian'
 	
 	def __init__(self, A, f0, tau, t0, phi0, Orbit):
@@ -147,7 +118,7 @@ class Wavelet:
 	
 	
 def FT_phase(self, Orbit):
-	
+	""" Take the Fourier transform of the Phase object """
 	phi = np.fft.rfft(self.phi)
 	self.phi_FT = phi[0:len(self.t)/2]*Orbit.Tobs/len(self.t)
 	self.freqs  = np.fft.fftfreq(self.t.shape[-1])[0:len(self.t)/2]/Orbit.dt
@@ -156,7 +127,7 @@ def FT_phase(self, Orbit):
 	
 
 class Phase:
-	
+	""" LISA laser phase comparison """
 	def __init__(self, i, j, t, phi):
 		self.i      = i 	 # emitting S/C
 		self.j      = j	     # receiving S/C
@@ -168,21 +139,19 @@ class Phase:
 
 	
 class TDI:
-	
+	""" Time Delay Inferometery class X, Y, Z, A, E, and T data channels """
 	def __init__(self, phi12, phi21, phi13, phi31, phi23, phi32, Orbit):
 		"""
 		Take the phase comparisons, FFT them, and the construct
 			the TDI data channels
-		
-		TODO: Currently, we are assuming L_{ij} = L!!!!
 		"""
 		self.freqs = phi12.freqs # TODO: need some logic to handle if another phase is being used instead
 		
 		fonfs = self.freqs/l.fstar
 	
-		phase1 = np.cos(fonfs)    - 1.0j*np.sin(fonfs)
-		phase2 = np.cos(2.*fonfs) - 1.0j*np.sin(2.*fonfs)
-		phase3 = np.cos(3.*fonfs) - 1.0j*np.sin(3.*fonfs)
+		phase1 = np.cos(fonfs)    + 1.0j*np.sin(fonfs)
+		phase2 = np.cos(2.*fonfs) + 1.0j*np.sin(2.*fonfs)
+		phase3 = np.cos(3.*fonfs) + 1.0j*np.sin(3.*fonfs)
 		
 		self.X =  (phi12.phi_FT - phi13.phi_FT)*phase3 \
 				+ (phi21.phi_FT - phi31.phi_FT)*phase2 \
@@ -205,14 +174,7 @@ class TDI:
 		self.T = 1./3.*(self.X + self.Y + self.Z)
 		
 def create_instrument_glitch_TDI(instrument_glitch_type, SC_on, Wave, Orbit, SC_point=None):
-    """
-    Generate the TDI channels for an instrumental glitch.
-    
-    input:
-    
-    output:
-    
-    """
+    """ Generate the TDI channels for an instrumental glitch """
     t = np.arange(0.0, Orbit.Tobs, Orbit.dt) # Todo: Don't need Orbit, its in Wavelet
     N = len(t)
     
@@ -339,33 +301,25 @@ def create_instrument_glitch_TDI(instrument_glitch_type, SC_on, Wave, Orbit, SC_
     
     return tdi
 
-
-		
-def set_GW_indices(self, Orbit):
-	# set the corresponding indices
-	self.idx_left  = int(self.t_min/Orbit.dt)
-	self.idx_right = int(self.t_max/Orbit.dt)
-
-	if (self.idx_left == self.idx_right):
-		self.idx_left  = self.idx_left  - 1
-		self.idx_right = self.idx_right + 1	
-		
-	return
+############################
 	
 def calc_k(self):
+	""" Calculate the unit-direction vector pointing towards the source """
+	
 	self.k = -np.array([self.sth*self.cphi, self.sth*self.sphi, self.cth])
 
 	return
 	
 def set_t(self, Orbit):
-
+	""" Set the times associated with the TDI footprint """
+	
 	self.t = np.arange(self.t_min, self.t_max, Orbit.dt)
 	self.N = len(self.t)
 	
 	return
 
-	
 def calc_xi(self):
+	""" Construct the wave variable for times associated with GW """
 	
 	k_dot_x = self.k[0]*self.x[0,:,:] + self.k[1]*self.x[1,:,:] + self.k[2]*self.x[2,:,:]
 
@@ -374,16 +328,18 @@ def calc_xi(self):
 	
 	
 def calc_Hcp_ij(self):
+	""" Calculate the integrated GW tensor """
+	
 	Hp = np.zeros((3,self.N))
 	Hc = np.zeros((3,self.N))
 	
-	Hp[0] = self.hp_wavelet.get_integrated_wavelet(self.xi[0])
-	Hp[1] = self.hp_wavelet.get_integrated_wavelet(self.xi[1])
-	Hp[2] = self.hp_wavelet.get_integrated_wavelet(self.xi[2])
+	Hp[0] = self.hp_wavelet.get_Psi(self.xi[0])
+	Hp[1] = self.hp_wavelet.get_Psi(self.xi[1])
+	Hp[2] = self.hp_wavelet.get_Psi(self.xi[2])
 	
-	Hc[0] = self.hc_wavelet.get_integrated_wavelet(self.xi[0])
-	Hc[1] = self.hc_wavelet.get_integrated_wavelet(self.xi[1])
-	Hc[2] = self.hc_wavelet.get_integrated_wavelet(self.xi[2])
+	Hc[0] = self.hc_wavelet.get_Psi(self.xi[0])
+	Hc[1] = self.hc_wavelet.get_Psi(self.xi[1])
+	Hc[2] = self.hc_wavelet.get_Psi(self.xi[2])
 	
 	# plus-polarization
 	self.Hpij[0,1] = Hp[1] - Hp[0]
@@ -408,6 +364,8 @@ def calc_Hcp_ij(self):
 	return
 	
 def construct_basis_tensors(self):
+	""" Calculate the GW basis tensors pieces """
+	
 	u = np.array([self.cth*self.cphi, self.cth*self.sphi, -self.sth])
 	v = np.array([self.sphi, -self.cphi, 0.0]).reshape((3,1))
 	
@@ -420,6 +378,7 @@ def construct_basis_tensors(self):
 	return
 	
 def calc_Hij(self):
+	""" Construct the GW tensor """
 	self.Hij = np.zeros((3,3, 3,3, self.N))
 	
 	#self.Hij[0,0,:,:,:] = self.Hpij*self.ep[0,0] + self.Hcij*self.ec[0,0]
@@ -437,7 +396,7 @@ def calc_Hij(self):
 	return
 
 def calc_k_dot_r(self):
-	
+	""" Perform the dot product between unit-direction vector and the S/C separation vectors """
 	self.k_dot_r = np.zeros((3,3,self.N))
 	
 	self.k_dot_r = self.k[0]*self.rij[0,:,:,:] + self.k[1]*self.rij[1,:,:,:] + self.k[2]*self.rij[2,:,:,:]
@@ -445,7 +404,8 @@ def calc_k_dot_r(self):
 	return	
 	
 def get_l(GW_glitch,i,j):
-
+	""" get the strain induced by the GW """
+	
 	temp = GW_glitch.r_outer_r[0,1,i,j,:]*GW_glitch.Hij[0,1,i,j,:] + \
 		   GW_glitch.r_outer_r[0,2,i,j,:]*GW_glitch.Hij[0,2,i,j,:] + \
 		   GW_glitch.r_outer_r[1,0,i,j,:]*GW_glitch.Hij[1,0,i,j,:] + \
@@ -457,6 +417,7 @@ def get_l(GW_glitch,i,j):
 	return temp
 	
 def contract_tenors(self):
+	""" Constract the detector tensor with the GW tensor """
 
 	#self.r_outer_r[:,:,0,0,:] = self.r_outer_r[:,:,0,0,:]/self.k_dot_r[0,0,:]
 	self.r_outer_r[:,:,0,1,:] = self.r_outer_r[:,:,0,1,:]/self.k_dot_r[0,1,:]
@@ -482,13 +443,11 @@ def contract_tenors(self):
 	
 	self.delta_l[1,2,:] = get_l(self,1,2)
 	self.delta_l[2,1,:] = get_l(self,2,1)
-	
-
-				   
+  
 	return
 	
 def make_padded_delta_l(self, t):
-	
+	""" pad the strain time series if needed """
 	left_pad  = np.argwhere(t == self.t[0] ).flatten()[0]
 	right_pad = len(t) - 1 - np.argwhere(t == self.t[-1]).flatten()[0]
 
@@ -502,15 +461,49 @@ def make_padded_delta_l(self, t):
 	self.delta_l_padded[2,1] = np.pad(self.delta_l[2,1], (left_pad,right_pad), 'constant')
 	
 	return
+	
+def construct_detector_tensor(self):
+	""" Caclulate the detector tensor for LISA's response to GWs """
+	
+	# get the S/C for all relevant times
+	self.x = np.zeros((3, 3, self.N))
+	self.x = self.Orbit.fill_full_orbit(self.t, self.x)
+	
+	calc_xi(self) # Calculate the wave variables
+	
+	# calculate separation vectors between spacecraft
+	self.rij = np.zeros((3,3,3,self.N))
+	self.rij = self.Orbit.fill_full_seps(self.t, self.x, self.rij)	
+	
+	# calculate the outer product between unit separation vectors
+	self.r_outer_r = 0.5*self.rij.reshape((1,3,3,3,self.N))*self.rij.reshape((3,1,3,3,self.N))
+	calc_k_dot_r(self)
+
+	return
+
+def calculate_strain(self):
+	""" Calculate the GW strain due to Sine-Gaussian burst """
+	self.Hpij = np.zeros((3,3,self.N))
+	self.Hcij = np.zeros((3,3,self.N))
+	calc_Hcp_ij(self)	
+
+	construct_basis_tensors(self)
+
+	calc_Hij(self)
+	
+	contract_tenors(self)
+
+	return
 
 	
 class GW_glitch:
-
+	""" Gravitational wave Sine-Gaussian """
 	def __init__(self, hp_wavelet, hc_wavelet, theta, phi, psi, Orbit):
 		self.hp_wavelet = hp_wavelet
 		self.hc_wavelet = hc_wavelet
 		self.Orbit = Orbit
 		
+		# set sky and polarization angles, evaluate respective trig functions
 		self.theta = theta
 		self.cth = np.cos(self.theta)
 		self.sth = np.sin(self.theta)
@@ -523,46 +516,25 @@ class GW_glitch:
 		self.s2psi = np.sin(2.0*self.psi)
 		self.c2psi = np.cos(2.0*self.psi)
 		
-		calc_k(self)
+		calc_k(self) # construct direction-to-source vector
 		
+		# Todo: Need to make smarter time bounds
 		# need to get a common times associated with sampling the wavelets
-		self.t_min = np.min([self.hp_wavelet.t_min, self.hc_wavelet.t_min])
+		# added 3L to lower bound due to temporal footprint of TDI channels
+		self.t_min = np.min([self.hp_wavelet.t_min, self.hc_wavelet.t_min]) - 3.*Orbit.L/l.Clight
 		self.t_max = np.max([self.hp_wavelet.t_max, self.hc_wavelet.t_max])
 		
-		# if light travel time from SSB to LISA is longer than tau
-		# 		add an extra buffer
-		#		Todo: Make this a bit smarter
-		if (self.hp_wavelet.tau < 3.*8.0*60. or self.hc_wavelet.tau < 3.*8.0*60.):
-			self.t_min = self.t_min - 3.*8.0*60.
-			self.t_max = self.t_max + 3.*8.0*60.
-	
-		set_GW_indices(self, self.Orbit)
-		set_t(self, self.Orbit)
-		
-		# get the S/C for all relevant times
-		self.x = np.zeros((3, 3, self.N))
-		self.x = self.Orbit.fill_full_orbit(self.t, self.x)
+		# adjust to make it a sampled time
+		self.t_min = int(self.t_min/Orbit.dt)*Orbit.dt
 
-		calc_xi(self)
-		
-		self.Hpij = np.zeros((3,3,self.N))
-		self.Hcij = np.zeros((3,3,self.N))
-		calc_Hcp_ij(self)	
-		
-		construct_basis_tensors(self)
+ 		# Todo: how to make sure time doesn't exceed LISA observation times
+		if (self.t_min < 0.0): # ensure time is positive
+			self.t_min = 0.0
+
+		set_t(self, self.Orbit)
 	
-		calc_Hij(self)
-		
-		# calculate separation vectors between spacecraft
-		self.rij = np.zeros((3,3,3,self.N))
-		self.rij = self.Orbit.fill_full_seps(self.t, self.x, self.rij)
-		
-		# calculate the outer product between unit separation vectors
-		self.r_outer_r = 0.5*self.rij.reshape((1,3,3,3,self.N))*self.rij.reshape((3,1,3,3,self.N))
-		calc_k_dot_r(self)
-		
-		contract_tenors(self)
-		
+	construct_detector_tensor = construct_detector_tensor	
+	calculate_strain = calculate_strain
 	make_padded_delta_l = make_padded_delta_l
 	
 	
