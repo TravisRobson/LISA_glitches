@@ -1,293 +1,201 @@
 import numpy as np
-import scipy.special as ss
+
+import Wavelet as wv
 
 import LISA as l
+import TDI as td
 
-# Todo: Currently, we are assuming L_{ij} = L!!!!
+IDX_comp_id = 5
 
-def evaluate_wavelet(self, t):
-	""" Return the value of the Sine-Gaussian wavelet at time(s) t """	
-		
-	arg1 = 2.*np.pi*self.f0*(t-self.t0) + self.phi0
-	arg2 = (t - self.t0)**2./(self.tau**2.)
-	
-	result = self.A*np.cos(arg1)*np.exp(-arg2)
+Week = 7.*24*3600
+mHz = 1.0e-3
 
-	return result
-	
-def calc_Psi(self):
-	""" In the SSB frame, calculate relevant times and sample the wavelet """
-	self.t = np.arange(self.t_min, self.t_max, self.Orbit.dt)
-	self.Psi = self.get_Psi(self.t)
-	
-	return
-	
-def make_padded_Psi(self, t):
-	""" Pad the wavelet's internal Psi to match shape of the provided time series """
-	
-	# find where input time array bounds matches the wavelet's native time array
-	left_pad  = np.argwhere(t == self.t[0] ).flatten()[0]
-	right_pad = len(t) - 1 - np.argwhere(t == self.t[-1]).flatten()[0]
+COMP_ID_LS = ['OP12', 'OP21', 'OP13', 'OP31', 'OP23', 'OP32', \
+			  'AC12', 'AC21', 'AC13', 'AC31', 'AC23', 'AC32']
+		
+def set_glitch_properties(self):
+    """ determine the disturbance type and the Laser Link on which it afflicts """
+    
+    if (self.comp_id == 'OP12'):
+        instrument_glitch_type = 'Optical Path'
+        SC_on    = 1
+        SC_point = 2
+    elif (self.comp_id == 'OP21'):
+        instrument_glitch_type = 'Optical Path'
+        SC_on    = 2
+        SC_point = 1
+    elif (self.comp_id == 'OP13'):
+        instrument_glitch_type = 'Optical Path'
+        SC_on    = 1
+        SC_point = 3
+    elif (self.comp_id == 'OP31'):
+        instrument_glitch_type = 'Optical Path'
+        SC_on    = 3
+        SC_point = 1
+    elif (self.comp_id == 'OP23'):
+        instrument_glitch_type = 'Optical Path'
+        SC_on    = 2
+        SC_point = 3
+    elif (self.comp_id == 'OP32'):
+        instrument_glitch_type = 'Optical Path'
+        SC_on    = 3
+        SC_point = 2    
 
-	self.Psi_padded = np.pad(self.Psi, (left_pad,right_pad), 'constant')
-#	self.t_full = np.copy(t)
-	
-	return
+    elif (self.comp_id == 'AC12'):
+        instrument_glitch_type = 'Acceleration'
+        SC_on    = 1
+        SC_point = 2
+    elif (self.comp_id == 'AC21'):
+        instrument_glitch_type = 'Acceleration'
+        SC_on    = 2
+        SC_point = 1
+    elif (self.comp_id == 'AC13'):
+        instrument_glitch_type = 'Acceleration'
+        SC_on    = 1
+        SC_point = 3
+    elif (self.comp_id == 'AC31'):
+        instrument_glitch_type = 'Acceleration'
+        SC_on    = 3
+        SC_point = 1
+    elif (self.comp_id == 'AC23'):
+        instrument_glitch_type = 'Acceleration'
+        SC_on    = 2
+        SC_point = 3
+    elif (self.comp_id == 'AC32'):
+        instrument_glitch_type = 'Acceleration'
+        SC_on    = 3
+        SC_point = 2
+        
+    return instrument_glitch_type, SC_on, SC_point	
 
-def get_integrated_wavelet(self, t):
-	""" Evaluate the integral of a Sine-Gaussian from 0 to time(s) t """
-	# don't waste evaluating a non-existant wavelet
-	if (self.A == 0):
-		return np.zeros(len(t))
-	else:
-		alpha = (t - self.t0)/self.tau
-		beta  = np.pi*self.f0*self.tau
-	
-		arg = alpha + 1.0j*beta
-		
-		phase = np.exp(-1.0j*self.phi0)
-	
-		term1 = phase.real*np.exp(-beta**2.0)
-		
-		huh = ss.erfcx(arg)
-		
-		# if the real argument of erfcx is too large, it blows up, 
-		#		do the straightforward way
-		if (len(np.isnan(huh)) != 0):
-			result = ss.erf(arg)*phase
-			result = np.sqrt(np.pi)*0.5*self.A*self.tau*result.real
-			return result
-		
-		term2 = huh*np.exp(-arg**2-beta**2)*phase
-		term2 = term2.real
-		
-		result = np.sqrt(np.pi)*0.5*self.A*self.tau*(term1 - term2)
-	
-	return result
-
-
-class Wavelet:
-	""" Sine-Gaussian wavelet class """
-	kind = 'Sine-Gaussian'
-	
-	def __init__(self, A, f0, tau, t0, phi0, Orbit):
-			
-		self.A      = A
-		self.f0     = f0
-		self.tau    = tau
-		self.t0     = t0
-		self.phi0   = phi0
-		self.Q      = np.pi*self.f0*self.tau
-		self.Orbit  = Orbit
-		
-		# Todo: smarter choices for these bounds
-		#			doesn't seem good when tau ~ 1/f0
-		self.t_min = self.t0 - 3.*self.tau
-		self.t_max = self.t0 + 3.*self.tau
-		
-		# adjust to times LISA actually sampled
-		self.t_min = int(self.t_min/Orbit.dt)*Orbit.dt
-		self.t_max = int(self.t_max/Orbit.dt)*Orbit.dt
-		
-		# incase burst is shorter than detector sampling rate
-		if (self.t_min == self.t_max):
-			self.t_max = self.t_min + Orbit.dt
-		
-		# Todo: how to make sure time doesn't exceed LISA observation times
-		if (self.t_min < 0.0): # ensure time is positive
-			self.t_min = 0.0
-		
-		# Todo: smarter choices for these bounds, probably SNR dependent
-		self.f_min = self.f0 - 3./self.tau
-		self.f_max = self.f0 + 3./self.tau
-		
-		# catch to make sure negative frequencies aren't asked for
-		if (self.f_min < 0.0): 
-			self.f_min = 0.0
-		# ensure max frequency is not greater than the Nyquist frequency
-		if (self.f_max > Orbit.f_ny):
-			self.f_max = Orbit.f_ny
-						
-		
-	# methods
-	get_Psi                = evaluate_wavelet
-	calc_Psi               = calc_Psi
-	make_padded_Psi        = make_padded_Psi
-	get_integrated_wavelet = get_integrated_wavelet # more for the GW model
-	
-	
-	
-def FT_phase(self, Orbit):
-	""" Take the Fourier transform of the Phase object """
-	phi = np.fft.rfft(self.phi)
-	self.phi_FT = phi[0:len(self.t)/2]*Orbit.Tobs/len(self.t)
-	self.freqs  = np.fft.fftfreq(self.t.shape[-1])[0:len(self.t)/2]/Orbit.dt
-	
-	return
-	
-
-class Phase:
-	""" LISA laser phase comparison """
-	def __init__(self, i, j, t, phi):
-		self.i      = i 	 # emitting S/C
-		self.j      = j	     # receiving S/C
-		self.t      = t      # time array
-		self.phi    = phi    # phase array
-		
-	FT_phase = FT_phase				
-
-
-	
-class TDI:
-	""" Time Delay Inferometery class X, Y, Z, A, E, and T data channels """
-	def __init__(self, phi12, phi21, phi13, phi31, phi23, phi32, Orbit):
-		"""
-		Take the phase comparisons, FFT them, and the construct
-			the TDI data channels
-		"""
-		self.freqs = phi12.freqs # TODO: need some logic to handle if another phase is being used instead
-		
-		fonfs = self.freqs/l.fstar
-	
-		phase1 = np.cos(fonfs)    + 1.0j*np.sin(fonfs)
-		phase2 = np.cos(2.*fonfs) + 1.0j*np.sin(2.*fonfs)
-		phase3 = np.cos(3.*fonfs) + 1.0j*np.sin(3.*fonfs)
-		
-		self.X =  (phi12.phi_FT - phi13.phi_FT)*phase3 \
-				+ (phi21.phi_FT - phi31.phi_FT)*phase2 \
-		 	    + (phi13.phi_FT - phi12.phi_FT)*phase1 \
-		 	    + (phi31.phi_FT - phi21.phi_FT)
-
-		self.Y =  (phi23.phi_FT - phi21.phi_FT)*phase3 \
-				+ (phi32.phi_FT - phi12.phi_FT)*phase2 \
-		 	    + (phi21.phi_FT - phi23.phi_FT)*phase1 \
-		 	    + (phi12.phi_FT - phi32.phi_FT)
-		 	    
-		self.Z =  (phi31.phi_FT - phi32.phi_FT)*phase3 \
-				+ (phi13.phi_FT - phi23.phi_FT)*phase2 \
-		 	    + (phi32.phi_FT - phi31.phi_FT)*phase1 \
-		 	    + (phi23.phi_FT - phi13.phi_FT)
-		
-		
-		self.A = 1./3.*(2.0*self.X - self.Y - self.Z)
-		self.E = 1./np.sqrt(3.)*(self.Z - self.Y)
-		self.T = 1./3.*(self.X + self.Y + self.Z)
-		
-def create_instrument_glitch_TDI(instrument_glitch_type, SC_on, Wave, Orbit, SC_point=None):
+def calc_TDI(self):
     """ Generate the TDI channels for an instrumental glitch """
+
+    instrument_glitch_type, SC_on, SC_point = self.set_props()
+            
+    Wave  = self.Wavelet
+    Orbit = self.Orbit
+    
     t = np.arange(0.0, Orbit.Tobs, Orbit.dt) # Todo: Don't need Orbit, its in Wavelet
     N = len(t)
-    
+
     # create empty phase first
     # Todo: be smarter here to save time, i.e. don't twice make phases
-    p12 = Phase(1,2, t, np.zeros(N))
-    p21 = Phase(2,1, t, np.zeros(N))
-    p13 = Phase(1,3, t, np.zeros(N))
-    p31 = Phase(3,1, t, np.zeros(N))
-    p23 = Phase(2,3, t, np.zeros(N))
-    p32 = Phase(3,2, t, np.zeros(N))
-    
-    # Handle a Laser Phase glitch
+    p12 = td.Phase(1,2, t, np.zeros(N,dtype=np.complex_))
+    p21 = td.Phase(2,1, t, np.zeros(N,dtype=np.complex_))
+    p13 = td.Phase(1,3, t, np.zeros(N,dtype=np.complex_))
+    p31 = td.Phase(3,1, t, np.zeros(N,dtype=np.complex_))
+    p23 = td.Phase(2,3, t, np.zeros(N,dtype=np.complex_))
+    p32 = td.Phase(3,2, t, np.zeros(N,dtype=np.complex_))
+
+	# Handle a Laser Phase glitch
     if (instrument_glitch_type == 'Laser Phase'):
         if (SC_point != None):
             raise ValueError("Lase noise is from the laser on one S/C")
-            
+        
         # construct a wavelet whose central time is shifted to t0-L
-        wave_temp = Wavelet(Wave.A, Wave.f0, Wave.tau, \
-                            Wave.t0 - Orbit.L/l.Clight, Wave.phi0, Orbit)
+        wave_temp = wv.Wavelet(Wave.A, Wave.f0, Wave.tau, \
+                    Wave.t0 + Orbit.L/l.Clight, Wave.phi0, Orbit)
         wave_temp.calc_Psi()
         wave_temp.make_padded_Psi(t) 
-                
+
         if (SC_on == 1):
-            p12 = Phase(1,2, t, +wave_temp.Psi_padded)
-            p13 = Phase(1,3, t, +wave_temp.Psi_padded)
-            
-            p21 = Phase(2,1, t, -Wave.Psi_padded)
-            p31 = Phase(3,1, t, -Wave.Psi_padded)
-            
+            p12 = td.Phase(1,2, t, +wave_temp.Psi_padded)
+            p13 = td.Phase(1,3, t, +wave_temp.Psi_padded)
+
+            p21 = td.Phase(2,1, t, -Wave.Psi_padded)
+            p31 = td.Phase(3,1, t, -Wave.Psi_padded)
+
         elif (SC_on == 2):
-            p21 = Phase(2,1, t, +wave_temp.Psi_padded)
-            p23 = Phase(2,3, t, +wave_temp.Psi_padded)
-            
-            p12 = Phase(1,2, t, -Wave.Psi_padded)
-            p32 = Phase(3,2, t, -Wave.Psi_padded)
+            p21 = td.Phase(2,1, t, +wave_temp.Psi_padded)
+            p23 = td.Phase(2,3, t, +wave_temp.Psi_padded)
+
+            p12 = td.Phase(1,2, t, -Wave.Psi_padded)
+            p32 = td.Phase(3,2, t, -Wave.Psi_padded)
 
         elif (SC_on == 3):
-            p31 = Phase(3,1, t, +wave_temp.Psi_padded)
-            p32 = Phase(3,2, t, +wave_temp.Psi_padded)
-            
-            p13 = Phase(1,3, t, -Wave.Psi_padded)
-            p23 = Phase(2,3, t, -Wave.Psi_padded)
-            
+            p31 = td.Phase(3,1, t, +wave_temp.Psi_padded)
+            p32 = td.Phase(3,2, t, +wave_temp.Psi_padded)
+
+            p13 = td.Phase(1,3, t, -Wave.Psi_padded)
+            p23 = td.Phase(2,3, t, -Wave.Psi_padded)
+
         else:
             raise ValueError("Invalid SC_on!!!")   
-            
-            
-    # Handle an Optical Path glitch
+
+
+	# Handle an Optical Path glitch
     elif (instrument_glitch_type == 'Optical Path'):
         if (SC_point == None):
             raise ValueError("Optical Path needs an S/C pointed towards.")
         if (SC_point == SC_on):
             raise ValueError("S/C pointed towards must differ from S/C glitch afflicts.")
-        
+
         # There is only one Laser Link which gets polluted. Do so.
         if (SC_on == 1 and SC_point == 2):
-            p12 = Phase(1,2, t, Wave.Psi_padded)
+            p12 = td.Phase(1,2, t, Wave.Psi_padded)
             
         elif (SC_on == 2 and SC_point == 1):
-            p21 = Phase(2,1, t, Wave.Psi_padded)
-            
+            p21 = td.Phase(2,1, t, Wave.Psi_padded)
+
         elif (SC_on == 1 and SC_point == 3):
-            p13 = Phase(1,3, t, Wave.Psi_padded)
-            
+            p13 = td.Phase(1,3, t, Wave.Psi_padded)
+
         elif (SC_on == 3 and SC_point == 1):
-            p31 = Phase(3,1, t, Wave.Psi_padded)
-            
+            p31 = td.Phase(3,1, t, Wave.Psi_padded)
+
         elif (SC_on == 2 and SC_point == 3):
-            p23 = Phase(2,3, t, Wave.Psi_padded)
-            
+            p23 = td.Phase(2,3, t, Wave.Psi_padded)
+
         elif (SC_on == 3 and SC_point == 2):
-            p32 = Phase(3,2, t, Wave.Psi_padded)
+            p32 = td.Phase(3,2, t, Wave.Psi_padded)
         else:
             raise ValueError("Invalid SC_on and/or Sc_point!!!")
-    
-    # Handle an acceleration noise glitch
+
+    # Handle an acceleration noise glitch   
     elif (instrument_glitch_type == 'Acceleration'):
         # construct a wavelet whose central time is shifted to t0-L
-        wave_temp = Wavelet(Wave.A, Wave.f0, Wave.tau, \
-                            Wave.t0 - Orbit.L/l.Clight, Wave.phi0, Orbit)
+        wave_temp = wv.Wavelet(Wave.A, Wave.f0, Wave.tau, \
+                    Wave.t0 + Orbit.L/l.Clight, Wave.phi0, Orbit)
         wave_temp.calc_Psi()
-        wave_temp.make_padded_Psi(t) 
-        
+        wave_temp.make_padded_Psi(t)
+
         if (SC_on == 1 and SC_point == 2):
-            p12 = Phase(1,2, t, -Wave.Psi_padded)
-            p21 = Phase(2,1, t, +wave_temp.Psi_padded)
-            
+            p12 = td.Phase(1,2, t, -Wave.Psi_padded)
+            p21 = td.Phase(2,1, t, +wave_temp.Psi_padded)
+
         elif (SC_on == 1 and SC_point == 3):
-            p13 = Phase(1,3, t, -Wave.Psi_padded)
-            p31 = Phase(3,1, t, +wave_temp.Psi_padded)
-            
+            p13 = td.Phase(1,3, t, -Wave.Psi_padded)
+            p31 = td.Phase(3,1, t, +wave_temp.Psi_padded)
+
         elif (SC_on == 2 and SC_point == 1):
-            p21 = Phase(2,1, t, -Wave.Psi_padded)
-            p12 = Phase(1,2, t, +wave_temp.Psi_padded)
-            
+            p21 = td.Phase(2,1, t, -Wave.Psi_padded)
+            p12 = td.Phase(1,2, t, +wave_temp.Psi_padded)
+
         elif (SC_on == 3 and SC_point == 1):
-            p31 = Phase(3,1, t, -Wave.Psi_padded)
-            p13 = Phase(1,3, t, +wave_temp.Psi_padded)
-            
+            p31 = td.Phase(3,1, t, -Wave.Psi_padded)
+            p13 = td.Phase(1,3, t, +wave_temp.Psi_padded)
+
         elif (SC_on == 2 and SC_point == 3):
-            p23 = Phase(2,3, t, -Wave.Psi_padded)
-            p32 = Phase(3,2, t, +wave_temp.Psi_padded)
-            
+            p23 = td.Phase(2,3, t, -Wave.Psi_padded)
+            p32 = td.Phase(3,2, t, +wave_temp.Psi_padded)
+
         elif (SC_on == 3 and SC_point == 2):
-            p32 = Phase(3,2, t, -Wave.Psi_padded)
-            p23 = Phase(2,3, t, +wave_temp.Psi_padded)
-            
+            p32 = td.Phase(3,2, t, -Wave.Psi_padded)
+            p23 = td.Phase(2,3, t, +wave_temp.Psi_padded)
+
         else:
             raise ValueError("Invalid SC_on and/or Sc_point!!!")
-    
+
     else:
         raise ValueError("Unexpected instrument glitch type. Choose from 'Laser Phase', 'Optical Path', or 'Acceleration")
+        
+    p12.phi = p12.phi.real
+    p21.phi = p21.phi.real
+    p13.phi = p13.phi.real
+    p31.phi = p31.phi.real
+    p23.phi = p23.phi.real
+    p32.phi = p32.phi.real
     
     # Fourier transform the time-domain phases
     p12.FT_phase(Orbit)
@@ -297,244 +205,182 @@ def create_instrument_glitch_TDI(instrument_glitch_type, SC_on, Wave, Orbit, SC_
     p23.FT_phase(Orbit)
     p32.FT_phase(Orbit)
     
-    tdi = TDI(p12, p21, p13, p31, p23, p32, Orbit)
+    self.TDI = td.TDI(p12, p21, p13, p31, p23, p32, Orbit)
+    self.TDI.f_min = Wave.f_min
+    self.TDI.f_max = Wave.f_max
     
-    return tdi
+    return
 
-############################
-	
-def calc_k(self):
-	""" Calculate the unit-direction vector pointing towards the source """
-	
-	self.k = -np.array([self.sth*self.cphi, self.sth*self.sphi, self.cth])
+def calc_glitch_snr(self):
+    """ Calculate the SNR of the glitch """
+    
+    #  Todo: create flag such that X channel or AET is an option    
+    snr_list = np.sum(self.TDI.get_TDI_snr(self.f_min, self.f_max))
 
-	return
-	
-def set_t(self, Orbit):
-	""" Set the times associated with the TDI footprint """
-	
-	self.t = np.arange(self.t_min, self.t_max, Orbit.dt)
-	self.N = len(self.t)
-	
-	return
+    self.SNR = np.sqrt(snr_list)
 
-def calc_xi(self):
-	""" Construct the wave variable for times associated with GW """
-	
-	k_dot_x = self.k[0]*self.x[0,:,:] + self.k[1]*self.x[1,:,:] + self.k[2]*self.x[2,:,:]
+    return 
+    
+def adjust_to_target_snr(self, target):
+    """ Adjust the SNR and amplitude to hit target SNR, and its TDI data """
+    
+    amp = target/self.SNR
+    
+    self.Wavelet.A *= amp
+    self.params[wv.IDX_lnA] = np.log(self.Wavelet.A) # this might already update automatically with python
+    self.Wavelet.calc_Psi()
+    t = np.arange(0.0, self.Orbit.Tobs, self.Orbit.dt)
+    self.Wavelet.make_padded_Psi(t)
+    
+    self.calc_TDI()
+    self.calc_snr()
+    
+    return
+    
+def param_vec_to_names(Wavelet, params):
+    """ take the parameter vector and update Wavelet parameters (i.e. named ones) """
+    
+    Wavelet.A    = np.exp(params[wv.IDX_lnA])
+    Wavelet.f0   = mHz*params[wv.IDX_f0]
+    Wavelet.t0   = Week*params[wv.IDX_t0]
+    Wavelet.tau  = Week*params[wv.IDX_tau]
+    Wavelet.phi0 = params[wv.IDX_phi0]
+    
+#     comp_id = COMP_ID_LS[int(params[IDX_comp_id])]
+    
+    return   
+    
+    
+def calc_Fisher(self):
+    """ Calculate the Fisher matrix for the glitch object """
+    
+    ep = 1.0e-6
+    
+    for i in range(len(COMP_ID_LS)):
+        if (COMP_ID_LS[i] == self.comp_id):
+            comp_num = i
+            break
+    
+    t = np.arange(0.0, self.Orbit.Tobs, self.Orbit.dt)  
 
-	self.xi = np.zeros((3, self.N)) + self.t
-	self.xi = self.xi - k_dot_x/l.Clight
-	
-	
-def calc_Hcp_ij(self):
-	""" Calculate the integrated GW tensor """
-	
-	Hp = np.zeros((3,self.N))
-	Hc = np.zeros((3,self.N))
-	
-	Hp[0] = self.hp_wavelet.get_Psi(self.xi[0])
-	Hp[1] = self.hp_wavelet.get_Psi(self.xi[1])
-	Hp[2] = self.hp_wavelet.get_Psi(self.xi[2])
-	
-	Hc[0] = self.hc_wavelet.get_Psi(self.xi[0])
-	Hc[1] = self.hc_wavelet.get_Psi(self.xi[1])
-	Hc[2] = self.hc_wavelet.get_Psi(self.xi[2])
-	
-	# plus-polarization
-	self.Hpij[0,1] = Hp[1] - Hp[0]
-	self.Hpij[1,0] = -self.Hpij[0,1]
-	
-	self.Hpij[0,2] = Hp[2] - Hp[0]
-	self.Hpij[2,0] = -self.Hpij[0,2]
-	
-	self.Hpij[1,2] = Hp[1] - Hp[2]
-	self.Hpij[2,1] = -self.Hpij[1,2]
-		
-	# cross-polarization
-	self.Hcij[0,1] = Hc[1] - Hc[0]
-	self.Hcij[1,0] = -self.Hcij[0,1]
-	
-	self.Hcij[0,2] = Hc[2] - Hc[0]
-	self.Hcij[2,0] = -self.Hcij[0,2]
-	
-	self.Hcij[1,2] = Hc[1] - Hc[2]
-	self.Hcij[2,1] = -self.Hcij[1,2]
-	
-	return
-	
-def construct_basis_tensors(self):
-	""" Calculate the GW basis tensors pieces """
-	
-	u = np.array([self.cth*self.cphi, self.cth*self.sphi, -self.sth])
-	v = np.array([self.sphi, -self.cphi, 0.0]).reshape((3,1))
-	
-	ep = u.reshape((1,3))*u.reshape((3,1)) - v.reshape((1,3))*v.reshape((3,1))
-	ec = u.reshape((1,3))*v.reshape((3,1)) + v.reshape((1,3))*u.reshape((3,1))
-	
-	self.ep = self.c2psi*ep - self.s2psi*ec
-	self.ec = self.s2psi*ep + self.c2psi*ec
-		
-	return
-	
-def calc_Hij(self):
-	""" Construct the GW tensor """
-	self.Hij = np.zeros((3,3, 3,3, self.N))
-	
-	#self.Hij[0,0,:,:,:] = self.Hpij*self.ep[0,0] + self.Hcij*self.ec[0,0]
-	self.Hij[0,1,:,:,:] = self.Hpij*self.ep[0,1] + self.Hcij*self.ec[0,1]
-	self.Hij[0,2,:,:,:] = self.Hpij*self.ep[0,2] + self.Hcij*self.ec[0,2]
-	
-	self.Hij[1,0,:,:,:] = self.Hij[0,1,:,:,:]
-	#self.Hij[1,1,:,:,:] = self.Hpij*self.ep[1,1] + self.Hcij*self.ec[1,1]
-	self.Hij[1,2,:,:,:] = self.Hpij*self.ep[1,2] + self.Hcij*self.ec[1,2]
-	
-	self.Hij[2,0,:,:,:] = self.Hij[0,2,:,:,:]
-	self.Hij[2,1,:,:,:] = self.Hij[1,2,:,:,:]
-	#self.Hij[2,2,:,:,:] = self.Hpij*self.ep[2,2] + self.Hcij*self.ec[2,2]
-	
-	return
+    Fisher = np.zeros((IDX_comp_id, IDX_comp_id))
+    
+    # this is not an efficient way to calculate the Fisher matrix
+       
+    for i in range(IDX_comp_id):
+    
+        self.params[i] += ep
+        
+        wave_p_LHS = wv.Wavelet(self.Wavelet.A, self.Wavelet.f0, self.Wavelet.tau, self.Wavelet.t0, self.Wavelet.phi0, self.Orbit)
+        param_vec_to_names(wave_p_LHS, self.params)
+        
+        self.params[i] -= 2*ep
+        
+        wave_m_LHS = wv.Wavelet(self.Wavelet.A, self.Wavelet.f0, self.Wavelet.tau, self.Wavelet.t0, self.Wavelet.phi0, self.Orbit)
+        param_vec_to_names(wave_m_LHS, self.params)
+               
+        self.params[i] += ep    # to return parameter to initial value           
+              
+        wave_p_LHS.calc_Psi()
+        wave_p_LHS.make_padded_Psi(t)
+        wave_m_LHS.calc_Psi()
+        wave_m_LHS.make_padded_Psi(t)
+        
+        glitch_p_LHS = Glitch(wave_p_LHS, comp_num, self.Orbit)
+        glitch_m_LHS = Glitch(wave_m_LHS, comp_num, self.Orbit)
+        
+        glitch_p_LHS.calc_TDI()
+        glitch_m_LHS.calc_TDI()
+        
+        # take the derivatives and stuff in TDI of plus glitch
+        glitch_p_LHS.TDI.A = (glitch_p_LHS.TDI.A - glitch_m_LHS.TDI.A)/2/ep
+        glitch_p_LHS.TDI.E = (glitch_p_LHS.TDI.E - glitch_m_LHS.TDI.E)/2/ep
+        glitch_p_LHS.TDI.T = (glitch_p_LHS.TDI.T - glitch_m_LHS.TDI.T)/2/ep    
+        
+        for j in range(i, IDX_comp_id):
+            
+            # RHS 
+            self.params[j] += ep
+            
+            wave_p_RHS = wv.Wavelet(self.Wavelet.A, self.Wavelet.f0, self.Wavelet.tau, self.Wavelet.t0, self.Wavelet.phi0, self.Orbit)
+            param_vec_to_names(wave_p_RHS, self.params)
 
-def calc_k_dot_r(self):
-	""" Perform the dot product between unit-direction vector and the S/C separation vectors """
-	self.k_dot_r = np.zeros((3,3,self.N))
-	
-	self.k_dot_r = self.k[0]*self.rij[0,:,:,:] + self.k[1]*self.rij[1,:,:,:] + self.k[2]*self.rij[2,:,:,:]
-	
-	return	
-	
-def get_l(GW_glitch,i,j):
-	""" get the strain induced by the GW """
-	
-	temp = GW_glitch.r_outer_r[0,1,i,j,:]*GW_glitch.Hij[0,1,i,j,:] + \
-		   GW_glitch.r_outer_r[0,2,i,j,:]*GW_glitch.Hij[0,2,i,j,:] + \
-		   GW_glitch.r_outer_r[1,0,i,j,:]*GW_glitch.Hij[1,0,i,j,:] + \
-		   GW_glitch.r_outer_r[1,2,i,j,:]*GW_glitch.Hij[1,2,i,j,:] + \
-		   GW_glitch.r_outer_r[2,0,i,j,:]*GW_glitch.Hij[2,0,i,j,:] + \
-		   GW_glitch.r_outer_r[2,1,i,j,:]*GW_glitch.Hij[2,1,i,j,:]	   
-	
+            self.params[j] -= 2*ep
 
-	return temp
-	
-def contract_tenors(self):
-	""" Constract the detector tensor with the GW tensor """
+            wave_m_RHS = wv.Wavelet(self.Wavelet.A, self.Wavelet.f0, self.Wavelet.tau, self.Wavelet.t0, self.Wavelet.phi0, self.Orbit)
+            param_vec_to_names(wave_m_RHS, self.params)
+            
+            self.params[j] += ep     
+                     
+            wave_p_RHS.calc_Psi()
+            wave_p_RHS.make_padded_Psi(t)
+            wave_m_RHS.calc_Psi()
+            wave_m_RHS.make_padded_Psi(t)
+            
+            glitch_p_RHS = Glitch(wave_p_RHS, comp_num, self.Orbit)
+            glitch_m_RHS = Glitch(wave_m_RHS, comp_num, self.Orbit)
+            
+            glitch_p_RHS.calc_TDI()
+            glitch_m_RHS.calc_TDI()
+            
+            # take the derivatives and stuff in TDI of plus glitch
+            glitch_p_RHS.TDI.A = (glitch_p_RHS.TDI.A - glitch_m_RHS.TDI.A)/2/ep
+            glitch_p_RHS.TDI.E = (glitch_p_RHS.TDI.E - glitch_m_RHS.TDI.E)/2/ep
+            glitch_p_RHS.TDI.T = (glitch_p_RHS.TDI.T - glitch_m_RHS.TDI.T)/2/ep
 
-	#self.r_outer_r[:,:,0,0,:] = self.r_outer_r[:,:,0,0,:]/self.k_dot_r[0,0,:]
-	self.r_outer_r[:,:,0,1,:] = self.r_outer_r[:,:,0,1,:]/self.k_dot_r[0,1,:]
-	self.r_outer_r[:,:,0,2,:] = self.r_outer_r[:,:,0,2,:]/self.k_dot_r[0,2,:]
-	
-	self.r_outer_r[:,:,1,0,:] = self.r_outer_r[:,:,1,1,:]
-	#self.r_outer_r[:,:,1,1,:] = self.r_outer_r[:,:,1,1,:]/self.k_dot_r[1,1,:]
-	self.r_outer_r[:,:,1,2,:] = self.r_outer_r[:,:,1,2,:]/self.k_dot_r[1,2,:]
-	
-	self.r_outer_r[:,:,2,0,:] = self.r_outer_r[:,:,0,2,:]
-	self.r_outer_r[:,:,2,1,:] = self.r_outer_r[:,:,1,2,:]
-	#self.r_outer_r[:,:,2,2,:] = self.r_outer_r[:,:,2,2,:]/self.k_dot_r[2,2,:]
+            Fisher[i][j]   = np.sum(td.get_TDI_overlap(glitch_p_LHS.TDI, glitch_p_RHS.TDI, wave_p_RHS.f_min, wave_p_RHS.f_max))
+            
+            del glitch_p_RHS
+            del glitch_m_RHS
+     
+        del glitch_p_LHS
+        del glitch_m_LHS
+
+    #Fisher[wv.IDX_t0, wv.IDX_phi0] = 0.
+        
+    # Take advantage of the symmetry of the Fisher matrix
+    for i in range(IDX_comp_id):
+        for j in range(i+1, IDX_comp_id):
+            Fisher[j][i] = Fisher[i][j]
+               
+    self.Fisher = Fisher
+    
+    param_vec_to_names(self.Wavelet, self.params) # reset wavelet parameters back to original values
+    
+    return
+    
+
+class Glitch:
+    """ Glitch Class """
+
+    def __init__(self, Wavelet, comp_id, Orbit):
+        self.Wavelet = Wavelet
+        self.comp_id = COMP_ID_LS[comp_id]
+        self.Orbit   = Orbit
+
+        self.params = np.zeros(6)
+
+        # create the dimensionless version of the parameters
+        self.params[wv.IDX_lnA]   = np.log(Wavelet.A)
+        self.params[wv.IDX_f0]    = Wavelet.f0/mHz
+        self.params[wv.IDX_t0]    = Wavelet.t0/Week
+        self.params[wv.IDX_tau]   = Wavelet.tau/Week
+        self.params[wv.IDX_phi0]  = Wavelet.phi0
+        self.params[IDX_comp_id]  = comp_id
+        
+        self.f_min = Wavelet.f_min
+        self.f_max = Wavelet.f_max
 
 
-	self.delta_l = np.zeros((3,3,self.N))
- 
-
-	self.delta_l[0,1,:] = get_l(self,0,1)
-	self.delta_l[1,0,:] = get_l(self,1,0)
+    # methods
+    calc_TDI  = calc_TDI
+    set_props = set_glitch_properties
+    calc_snr  = calc_glitch_snr
+    adjust_snr = adjust_to_target_snr
+    calc_Fish = calc_Fisher
+    param_vec_to_names = param_vec_to_names
 	
-	self.delta_l[0,2,:] = get_l(self,0,2)
-	self.delta_l[2,0,:] = get_l(self,2,0)
 	
-	self.delta_l[1,2,:] = get_l(self,1,2)
-	self.delta_l[2,1,:] = get_l(self,2,1)
-  
-	return
 	
-def make_padded_delta_l(self, t):
-	""" pad the strain time series if needed """
-	left_pad  = np.argwhere(t == self.t[0] ).flatten()[0]
-	right_pad = len(t) - 1 - np.argwhere(t == self.t[-1]).flatten()[0]
-
-	self.delta_l_padded = np.zeros((3,3,len(t)))
-
-	self.delta_l_padded[0,1] = np.pad(self.delta_l[0,1], (left_pad,right_pad), 'constant')
-	self.delta_l_padded[1,0] = np.pad(self.delta_l[1,0], (left_pad,right_pad), 'constant')
-	self.delta_l_padded[0,2] = np.pad(self.delta_l[0,1], (left_pad,right_pad), 'constant')
-	self.delta_l_padded[2,0] = np.pad(self.delta_l[2,0], (left_pad,right_pad), 'constant')
-	self.delta_l_padded[1,2] = np.pad(self.delta_l[1,2], (left_pad,right_pad), 'constant')
-	self.delta_l_padded[2,1] = np.pad(self.delta_l[2,1], (left_pad,right_pad), 'constant')
-	
-	return
-	
-def construct_detector_tensor(self):
-	""" Caclulate the detector tensor for LISA's response to GWs """
-	
-	# get the S/C for all relevant times
-	self.x = np.zeros((3, 3, self.N))
-	self.x = self.Orbit.fill_full_orbit(self.t, self.x)
-	
-	calc_xi(self) # Calculate the wave variables
-	
-	# calculate separation vectors between spacecraft
-	self.rij = np.zeros((3,3,3,self.N))
-	self.rij = self.Orbit.fill_full_seps(self.t, self.x, self.rij)	
-	
-	# calculate the outer product between unit separation vectors
-	self.r_outer_r = 0.5*self.rij.reshape((1,3,3,3,self.N))*self.rij.reshape((3,1,3,3,self.N))
-	calc_k_dot_r(self)
-
-	return
-
-def calculate_strain(self):
-	""" Calculate the GW strain due to Sine-Gaussian burst """
-	self.Hpij = np.zeros((3,3,self.N))
-	self.Hcij = np.zeros((3,3,self.N))
-	calc_Hcp_ij(self)	
-
-	construct_basis_tensors(self)
-
-	calc_Hij(self)
-	
-	contract_tenors(self)
-
-	return
-
-	
-class GW_glitch:
-	""" Gravitational wave Sine-Gaussian """
-	def __init__(self, hp_wavelet, hc_wavelet, theta, phi, psi, Orbit):
-		self.hp_wavelet = hp_wavelet
-		self.hc_wavelet = hc_wavelet
-		self.Orbit = Orbit
-		
-		# set sky and polarization angles, evaluate respective trig functions
-		self.theta = theta
-		self.cth = np.cos(self.theta)
-		self.sth = np.sin(self.theta)
-		
-		self.phi  = phi
-		self.sphi = np.sin(self.phi)
-		self.cphi = np.cos(self.phi)
-		
-		self.psi   = psi
-		self.s2psi = np.sin(2.0*self.psi)
-		self.c2psi = np.cos(2.0*self.psi)
-		
-		calc_k(self) # construct direction-to-source vector
-		
-		# Todo: Need to make smarter time bounds
-		# need to get a common times associated with sampling the wavelets
-		# added 3L to lower bound due to temporal footprint of TDI channels
-		self.t_min = np.min([self.hp_wavelet.t_min, self.hc_wavelet.t_min]) - 3.*Orbit.L/l.Clight
-		self.t_max = np.max([self.hp_wavelet.t_max, self.hc_wavelet.t_max])
-		
-		# adjust to make it a sampled time
-		self.t_min = int(self.t_min/Orbit.dt)*Orbit.dt
-
- 		# Todo: how to make sure time doesn't exceed LISA observation times
-		if (self.t_min < 0.0): # ensure time is positive
-			self.t_min = 0.0
-
-		set_t(self, self.Orbit)
-	
-	construct_detector_tensor = construct_detector_tensor	
-	calculate_strain = calculate_strain
-	make_padded_delta_l = make_padded_delta_l
 	
 	
