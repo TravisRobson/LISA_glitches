@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 plt.rc('text', usetex=True)
 plt.rc('font', family='serif')
 
-def get_Fihser_Eignen_BS(Fisher):
+def get_Fisher_Eignen_BS(Fisher):
     """ Obtain eigenvalues and eigenvectors of a Fisher Matrix """
     results  = np.linalg.eigh(Fisher)
     
