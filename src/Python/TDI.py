@@ -40,51 +40,72 @@ class Phase:
 	
 ################### LISA TDI Class Implementation ###################
 	
-def get_TDI_snr(self, f_min, f_max):
-	""" Calculate the SNR in A,E, and T channels """
-	
-	mask = (self.freqs>f_min) & (self.freqs<f_max)
+def get_TDI_snr(self, f_min, f_max, X_flag=None):
+    """ Calculate the SNR in A,E, and T channels """
 
-	SnAE, SnT = self.Orbit.get_Sn(self.freqs[mask])
-	
-	df = self.freqs[1] - self.freqs[0]
-	
-	SNR_A = 4.0*np.sum( self.A[mask]*np.conjugate(self.A[mask])/SnAE).real*df
-	SNR_E = 4.0*np.sum( self.E[mask]*np.conjugate(self.E[mask])/SnAE).real*df
-	
-	SNR_T = 4.0*np.sum( self.T[mask]*np.conjugate(self.T[mask])/SnT).real*df
+    mask = (self.freqs>f_min) & (self.freqs<f_max)
+    df = self.freqs[1] - self.freqs[0]
 
-	return SNR_A, SNR_E, SNR_T	
-	
-def get_TDI_overlap(tdi1, tdi2, f_min, f_max):
-	""" Calculate the overlap between TDI data """
-	
-	mask1 = (tdi1.freqs >= f_min) & (tdi1.freqs <= f_max)
-	mask2 = (tdi2.freqs >= f_min) & (tdi2.freqs <= f_max) 
+    if (X_flag == None):
+        SnAE, SnT = self.Orbit.get_Sn(self.freqs[mask])
 
-	freqs = tdi1.freqs[mask1] 
-	
-	df = freqs[1] - freqs[0]
+        SNR_A = 4.0*np.sum( self.A[mask]*np.conjugate(self.A[mask])/SnAE).real*df
+        SNR_E = 4.0*np.sum( self.E[mask]*np.conjugate(self.E[mask])/SnAE).real*df
 
-	d1_A = tdi1.A[mask1]
-	d1_E = tdi1.E[mask1]
-	d1_T = tdi1.T[mask1]
+        SNR_T = 4.0*np.sum( self.T[mask]*np.conjugate(self.T[mask])/SnT).real*df
 
-	d2_A = tdi2.A[mask2]
-	d2_E = tdi2.E[mask2]
-	d2_T = tdi2.T[mask2]
-	
-	SnAE, SnT = tdi1.Orbit.get_Sn(freqs)
-	
-	overlap_A = 0
-	overlap_E = 0
-	overlap_T = 0
+        return SNR_A, SNR_E, SNR_T	
+    else:
+        SnX = self.Orbit.get_Sn(self.freqs[mask], X_flag)
 
-	overlap_A += np.sum(d1_A*np.conjugate(d2_A)/SnAE)
-	overlap_E += np.sum(d1_E*np.conjugate(d2_E)/SnAE)
-	overlap_T += np.sum(d1_T*np.conjugate(d2_T)/SnT )
+        SNR_X = 4.0*np.sum( self.X[mask]*np.conjugate(self.X[mask])/SnX).real*df
 
-	return 4*np.array([overlap_A, overlap_E, overlap_T]).real*df
+        return SNR_X
+        	
+def get_TDI_overlap(tdi1, tdi2, f_min, f_max, X_flag=None):
+    """ Calculate the overlap between TDI data """
+
+    mask1 = (tdi1.freqs >= f_min) & (tdi1.freqs <= f_max)
+    mask2 = (tdi2.freqs >= f_min) & (tdi2.freqs <= f_max) 
+
+    freqs = tdi1.freqs[mask1] 
+    
+    if (len(freqs) < 2): # i.e. the signals do not overlap at all..
+        return 0.0
+
+    df = freqs[1] - freqs[0]
+
+    if (X_flag == None):
+        d1_A = tdi1.A[mask1]
+        d1_E = tdi1.E[mask1]
+        d1_T = tdi1.T[mask1]
+
+        d2_A = tdi2.A[mask2]
+        d2_E = tdi2.E[mask2]
+        d2_T = tdi2.T[mask2]
+
+        SnAE, SnT = tdi1.Orbit.get_Sn(freqs)
+
+        overlap_A = 0
+        overlap_E = 0
+        overlap_T = 0
+
+        overlap_A += np.sum(d1_A*np.conjugate(d2_A)/SnAE)
+        overlap_E += np.sum(d1_E*np.conjugate(d2_E)/SnAE)
+        overlap_T += np.sum(d1_T*np.conjugate(d2_T)/SnT )
+
+        return 4*np.array([overlap_A, overlap_E, overlap_T]).real*df
+
+    else:
+        d1_X = tdi1.X[mask1]
+        d2_X = tdi2.X[mask2]
+
+        SnX  = tdi1.Orbit.get_Sn(freqs, X_flag)
+
+        overlap_X  = 0
+        overlap_X += np.sum(d1_X*np.conjugate(d2_X)/SnX)
+
+        return 4*overlap_X.real*df
 
 	
 class TDI:

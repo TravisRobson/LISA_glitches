@@ -54,30 +54,34 @@ def full_SC_seps(self, t, x):
 	
 	return rij/self.L
 	
-def get_instrument_noise(self, f):
-	"""
-	Get the instrument noise power spectral density
-	"""
-	
-	f_star = Clight/(2.*np.pi*self.L) # TODO: will change when we go to second gen TDI
-	fonfs  = f/f_star
+def get_instrument_noise(self, f, X_flag=None):
+    """
+    Get the instrument noise power spectral density
+    """
 
-	red  = 16.0*( (2.0e-5/f)**10.0 + (1.0e-4/f)**2. )
-	Sloc = 2.89e-24;
+    f_star = Clight/(2.*np.pi*self.L) # TODO: will change when we go to second gen TDI
+    fonfs  = f/f_star
 
-	trans = np.sin(fonfs)**2.0 # transfer function
+    red  = 16.0*( (2.0e-5/f)**10.0 + (1.0e-4/f)**2. )
+    Sloc = 2.89e-24;
 
-	SnAE = 16./3.*trans*( (2.0+np.cos(fonfs))*(Sps + Sloc)  + \
-					       2.0*(3.0 + 2.0*np.cos(fonfs) + np.cos(2.0*fonfs)) \
-					       *(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.0*(1.0+red)))/(2.0*self.L)**2.0
+    trans = np.sin(fonfs)**2.0 # transfer function
 
-	SnT = 16./3.*trans*(0.5*(Sps + Sloc)*(1. - np.cos(fonfs)) + \
-							(1. - 2.*np.cos(fonfs) + np.cos(fonfs)**2) \
-						   *(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.0*(1.0+red)))/(2.0*self.L)**2.0 
+    if (X_flag==None):
+        SnAE = 16./3.*trans*( (2.0+np.cos(fonfs))*(Sps + Sloc)  + \
+                        2.0*(3.0 + 2.0*np.cos(fonfs) + np.cos(2.0*fonfs)) \
+                           *(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.0*(1.0+red)))/(2.0*self.L)**2.0
 
-	# SXYZ = 4.0*trans*(4.0*(Sps+Sloc) + 8.0*(1.0+np.cos(fonfs)**2.0)*(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.*(1.0+red)))/(2.0*self.L)**2.0
+        SnT = 16./3.*trans*(0.5*(Sps + Sloc)*(1. - np.cos(fonfs)) + \
+                           (1. - 2.*np.cos(fonfs) + np.cos(fonfs)**2) \
+                          *(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.0*(1.0+red)))/(2.0*self.L)**2.0 
 
-	return SnAE, SnT
+        return SnAE, SnT
+
+    else:
+        SXYZ = 4.0*trans*(4.0*(Sps+Sloc) + 8.0*(1.0+np.cos(fonfs)**2.0)*(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.*(1.0+red)))/(2.0*self.L)**2.0
+
+    return SXYZ
 
 def get_Sn(f):
     """

@@ -65,21 +65,21 @@ def calc_Hcp_ij(self):
     
     hp = self.Wavelet
     ellip = self.ellip
-    
+
     hp0_delayed = hp.get_Psi(self.xi[0] + self.Orbit.L/l.Clight)
     hp0         = hp.get_Psi(self.xi[0])
-    hc0_delayed = ellip*hp0_delayed # self.hc_wavelet.get_Psi(self.xi[0] + self.Orbit.L/l.Clight)
-    hc0         = ellip*hp0         # self.hc_wavelet.get_Psi(self.xi[0])
+    hc0_delayed = ellip*hp0_delayed 
+    hc0         = ellip*hp0   
 
     hp1_delayed = hp.get_Psi(self.xi[1] + self.Orbit.L/l.Clight)
     hp1         = hp.get_Psi(self.xi[1])
-    hc1_delayed = ellip*hp1_delayed # self.hc_wavelet.get_Psi(self.xi[1] + self.Orbit.L/l.Clight)
-    hc1         = ellip*hp1         # self.hc_wavelet.get_Psi(self.xi[1])
+    hc1_delayed = ellip*hp1_delayed 
+    hc1         = ellip*hp1         
 
     hp2_delayed = hp.get_Psi(self.xi[2] + self.Orbit.L/l.Clight)
     hp2         = hp.get_Psi(self.xi[2])
-    hc2_delayed = ellip*hp2_delayed # self.hc_wavelet.get_Psi(self.xi[2] + self.Orbit.L/l.Clight)
-    hc2         = ellip*hp2         # self.hc_wavelet.get_Psi(self.xi[2])
+    hc2_delayed = ellip*hp2_delayed 
+    hc2         = ellip*hp2         
 
     self.Hpij[0,1] = hp1_delayed - hp0
     self.Hpij[1,0] = hp0_delayed - hp1
@@ -123,7 +123,7 @@ def calc_Hij(self):
 	self.Hij[2,0,:,:,:] = self.Hpij*self.ep[2,0] + self.Hcij*self.ec[2,0] 
 	self.Hij[2,1,:,:,:] = self.Hpij*self.ep[2,1] + self.Hcij*self.ec[2,1] 
 	self.Hij[2,2,:,:,:] = self.Hpij*self.ep[2,2] + self.Hcij*self.ec[2,2]
-	
+		
 	return
 	
 def get_l(GW_glitch,i,j):
@@ -186,7 +186,7 @@ def calc_k(self):
 def set_t(self):
 	""" Set the times associated with the TDI footprint """
 	
-	self.N = 2**8
+	self.N = 2**9
 	dt = self.Orbit.Tobs/self.N
 	self.t = np.linspace(0, self.N-1, self.N)*self.Orbit.Tobs/self.N
 	
@@ -231,17 +231,17 @@ def construct_TDI(self, Orbit):
 	
 	return tdi_GW
 	
-def calc_gw_snr(self):
+def calc_gw_snr(self, X_flag=None):
     """ Calculate the SNR of the GW burst """
     
     #  Todo: create flag such that X channel or AET is an option    
-    snr_list = np.sum(self.TDI.get_TDI_snr(self.TDI.f_min, self.TDI.f_max))
+    snr_list = np.sum(self.TDI.get_TDI_snr(self.TDI.f_min, self.TDI.f_max, X_flag))
 
     self.SNR = np.sqrt(snr_list)
 
     return 
     
-def adjust_to_target_snr(self, target):
+def adjust_to_target_snr(self, target, X_flag=None):
     """ Adjust the SNR and amplitude to hit target SNR, and its TDI data """
     
     if (self.SNR != target):
@@ -254,72 +254,78 @@ def adjust_to_target_snr(self, target):
         self.calculate_strain()
         self.TDI = self.construct_TDI(self.Orbit)
 
-        self.calc_snr()
+        self.calc_snr(X_flag)
     
     return
 	
-def calculate_Fisher(self):
+def calculate_Fisher(self, X_flag=None):
     """ Calculate the Fisher matrix for a GW burst """
-    
+
     orb = self.Orbit
     t = np.arange(0.0, orb.Tobs, orb.dt)
-    
+
     epsilon = 1.0e-6
     NP = IDX_ellip+1 ## wv.IDX_phi0+1
     Fisher = np.zeros((NP, NP))
-        
+
     for i in range(NP):
         self.paramsND[i] += epsilon
         gw_p_LHS = Burst(copy.deepcopy(self.paramsND), orb)
         gw_p_LHS.construct_detector_tensor()
         gw_p_LHS.calculate_strain()
         gw_p_LHS.TDI = gw_p_LHS.construct_TDI(orb)
-        
+
         self.paramsND[i] -= 2*epsilon
         gw_m_LHS = Burst(copy.deepcopy(self.paramsND), orb)
         gw_m_LHS.construct_detector_tensor()
         gw_m_LHS.calculate_strain()
         gw_m_LHS.TDI = gw_m_LHS.construct_TDI(orb)
-        
+
         self.paramsND[i] += epsilon
-        
-        gw_p_LHS.TDI.A = (gw_p_LHS.TDI.A - gw_m_LHS.TDI.A)/(2*epsilon)
-        gw_p_LHS.TDI.E = (gw_p_LHS.TDI.E - gw_m_LHS.TDI.E)/(2*epsilon)
-        gw_p_LHS.TDI.T = (gw_p_LHS.TDI.T - gw_m_LHS.TDI.T)/(2*epsilon)
-        
+
+        if (X_flag==None):
+            gw_p_LHS.TDI.A = (gw_p_LHS.TDI.A - gw_m_LHS.TDI.A)/(2*epsilon)
+            gw_p_LHS.TDI.E = (gw_p_LHS.TDI.E - gw_m_LHS.TDI.E)/(2*epsilon)
+            gw_p_LHS.TDI.T = (gw_p_LHS.TDI.T - gw_m_LHS.TDI.T)/(2*epsilon)
+        else:
+            gw_p_LHS.TDI.X = (gw_p_LHS.TDI.X - gw_m_LHS.TDI.X)/(2*epsilon)
+
         for j in range(i, NP):
             self.paramsND[j] += epsilon
             gw_p_RHS = Burst(copy.deepcopy(self.paramsND), orb)
             gw_p_RHS.construct_detector_tensor()
             gw_p_RHS.calculate_strain()
             gw_p_RHS.TDI = gw_p_RHS.construct_TDI(orb)
-        
+
             self.paramsND[j] -= 2*epsilon
             gw_m_RHS = Burst(copy.deepcopy(self.paramsND), orb)
             gw_m_RHS.construct_detector_tensor()
             gw_m_RHS.calculate_strain()
             gw_m_RHS.TDI = gw_m_RHS.construct_TDI(orb)
-        
-            self.paramsND[j] += epsilon    
-            
-            gw_p_RHS.TDI.A = (gw_p_RHS.TDI.A - gw_m_RHS.TDI.A)/(2*epsilon)
-            gw_p_RHS.TDI.E = (gw_p_RHS.TDI.E - gw_m_RHS.TDI.E)/(2*epsilon)
-            gw_p_RHS.TDI.T = (gw_p_RHS.TDI.T - gw_m_RHS.TDI.T)/(2*epsilon)       
-            
-            Fisher[i][j]   = np.sum(td.get_TDI_overlap(gw_p_LHS.TDI, gw_p_RHS.TDI, gw_p_LHS.TDI.f_min, gw_p_LHS.TDI.f_max))
-            
-            del gw_p_RHS
-            del gw_m_RHS
 
-        del gw_p_LHS
-        del gw_m_LHS
-    
+            self.paramsND[j] += epsilon    
+
+            if (X_flag==None):
+                gw_p_RHS.TDI.A = (gw_p_RHS.TDI.A - gw_m_RHS.TDI.A)/(2*epsilon)
+                gw_p_RHS.TDI.E = (gw_p_RHS.TDI.E - gw_m_RHS.TDI.E)/(2*epsilon)
+                gw_p_RHS.TDI.T = (gw_p_RHS.TDI.T - gw_m_RHS.TDI.T)/(2*epsilon)          
+            else:
+                gw_p_RHS.TDI.X = (gw_p_RHS.TDI.X - gw_m_RHS.TDI.X)/(2*epsilon) 
+
+            Fisher[i][j] = np.sum(td.get_TDI_overlap(gw_p_LHS.TDI, gw_p_RHS.TDI, gw_p_LHS.TDI.f_min, gw_p_LHS.TDI.f_max, X_flag))
+
+    del gw_p_RHS
+    del gw_m_RHS
+
+    del gw_p_LHS
+    del gw_m_LHS
+
     for i in range(NP):
         for j in range(i+1, NP):
             Fisher[j][i] = Fisher[i][j]
-            
+
     self.Fisher = Fisher
-    
+
     return
 
 
