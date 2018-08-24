@@ -42,10 +42,13 @@ class Phase:
 	
 def get_TDI_snr(self, f_min, f_max, X_flag=None):
     """ Calculate the SNR in A,E, and T channels """
+    
+    if (len(self.freqs) < 2): # i.e. the signals do not overlap at all..
+        return 0.0
 
     mask = (self.freqs>f_min) & (self.freqs<f_max)
     df = self.freqs[1] - self.freqs[0]
-
+    
     if (X_flag == None):
         SnAE, SnT = self.Orbit.get_Sn(self.freqs[mask])
 
@@ -83,7 +86,7 @@ def get_TDI_overlap(tdi1, tdi2, f_min, f_max, X_flag=None):
         d2_A = tdi2.A[mask2]
         d2_E = tdi2.E[mask2]
         d2_T = tdi2.T[mask2]
-
+        
         SnAE, SnT = tdi1.Orbit.get_Sn(freqs)
 
         overlap_A = 0
@@ -113,11 +116,11 @@ class TDI:
 	
 	def __init__(self, phi12, phi21, phi13, phi31, phi23, phi32, Orbit):
 		""" Take the phase comparisons and construct the TDI data channels """
-		
+
 		self.freqs = phi12.freqs # TODO: need some logic to handle if another phase is being used instead
 		self.Orbit = Orbit
 		fonfs = self.freqs/l.fstar
-	
+
 		phase1 = np.cos(fonfs)    - 1.0j*np.sin(fonfs)
 		phase2 = np.cos(2.*fonfs) - 1.0j*np.sin(2.*fonfs)
 		phase3 = np.cos(3.*fonfs) - 1.0j*np.sin(3.*fonfs)
