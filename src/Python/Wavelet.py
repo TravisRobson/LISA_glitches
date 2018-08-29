@@ -6,6 +6,16 @@ IDX_t0   = 2 # in weeks
 IDX_tau  = 3 # in weeks
 IDX_phi0 = 4 # already dimensionless
 
+def get_Psi_FT(f, Wavelet):
+
+    phi0 = Wavelet.phi0  + 2*np.pi*Wavelet.f0*Wavelet.t0
+
+    term1 = np.exp(2.j*phi0)
+    term2 = np.exp(-(f - Wavelet.f0)**2*np.pi**2*Wavelet.tau**2)
+    term3 = np.exp(-(f + Wavelet.f0)**2*np.pi**2*Wavelet.tau**2) + term1*term2
+    term4 = np.exp(-1.0j*(2.0*np.pi*f*Wavelet.t0 + phi0))
+    
+    return np.sqrt(np.pi)/2.*Wavelet.A*Wavelet.tau*term4*term3
 
 def evaluate_wavelet(self, t):
     """ Return the value of the Sine-Gaussian wavelet at time(s) t """	

@@ -6,6 +6,8 @@ import TDI as td
 import Wavelet as wv
 import copy
 
+
+
 IDX_cost  = 5
 IDX_phi   = 6
 IDX_psi   = 7
@@ -184,52 +186,66 @@ def calc_k(self):
 	return
 	
 def set_t(self):
-	""" Set the times associated with the TDI footprint """
-	
-	self.N = 2**9
-	dt = self.Orbit.Tobs/self.N
-	self.t = np.linspace(0, self.N-1, self.N)*self.Orbit.Tobs/self.N
-	
-	return
+    """ Set the times associated with the TDI footprint """
+
+    N_cycles =  6*self.Orbit.Tobs/self.tau
+    N_cycles = int(2**np.ceil(np.log2(N_cycles)))
+
+    if (N_cycles < 128):
+        N_cycles = 128
+#     if (N_cycles > int(np.ceil(self.f0*self.Orbit.Tobs))):
+#         N_cycles = int(  2**np.floor(np.log2(self.f0*self.Orbit.Tobs/4))  )
+        
+        #print(N_cycles)
+
+    self.N = int(N_cycles)
+    dt = self.Orbit.Tobs/self.N
+    self.t = np.linspace(0, self.N-1, self.N)*self.Orbit.Tobs/self.N
+
+    return
 	
 def construct_TDI(self, Orbit):
-	""" construct the TDI channels for the GW """
-	
-	#self.make_padded_delta_l(t)
+    """ construct the TDI channels for the GW """
 
-	p12 = td.Phase(1,2, self.t, self.delta_l[0,1])
-	p21 = td.Phase(2,1, self.t, self.delta_l[1,0])
+    #self.make_padded_delta_l(t)
 
-	p13 = td.Phase(1,3, self.t, self.delta_l[0,2])
-	p31 = td.Phase(3,1, self.t, self.delta_l[2,0])
+    p12 = td.Phase(1,2, self.t, self.delta_l[0,1])
+    p21 = td.Phase(2,1, self.t, self.delta_l[1,0])
 
-	p23 = td.Phase(2,3, self.t, self.delta_l[1,2])
-	p32 = td.Phase(3,2, self.t, self.delta_l[2,1])
-   
-	p12.FT_phase_FAST(Orbit)
-	p21.FT_phase_FAST(Orbit)
-	p13.FT_phase_FAST(Orbit)
-	p31.FT_phase_FAST(Orbit)
-	p23.FT_phase_FAST(Orbit)
-	p32.FT_phase_FAST(Orbit)
-	
-	p12.phi_FT = np.fft.fftshift(p12.phi_FT)
-	p21.phi_FT = np.fft.fftshift(p21.phi_FT)
-	p13.phi_FT = np.fft.fftshift(p13.phi_FT)
-	p31.phi_FT = np.fft.fftshift(p31.phi_FT)
-	p23.phi_FT = np.fft.fftshift(p23.phi_FT)
-	p32.phi_FT = np.fft.fftshift(p32.phi_FT)
-	
-	N_lo = (self.q - self.N/2)
-	N_hi = (self.q + self.N/2)
-	p12.freqs = np.arange(N_lo, N_hi, 1)/Orbit.Tobs
+    p13 = td.Phase(1,3, self.t, self.delta_l[0,2])
+    p31 = td.Phase(3,1, self.t, self.delta_l[2,0])
 
-	tdi_GW = td.TDI(p12, p21, p13, p31, p23, p32, Orbit)
-	
-	tdi_GW.f_min = p12.freqs[0]
-	tdi_GW.f_max = p12.freqs[-1]
-	
-	return tdi_GW
+    p23 = td.Phase(2,3, self.t, self.delta_l[1,2])
+    p32 = td.Phase(3,2, self.t, self.delta_l[2,1])
+
+    p12.FT_phase_FAST(Orbit)
+    p21.FT_phase_FAST(Orbit)
+    p13.FT_phase_FAST(Orbit)
+    p31.FT_phase_FAST(Orbit)
+    p23.FT_phase_FAST(Orbit)
+    p32.FT_phase_FAST(Orbit)
+
+    p12.phi_FT = np.fft.fftshift(p12.phi_FT)
+    p21.phi_FT = np.fft.fftshift(p21.phi_FT)
+    p13.phi_FT = np.fft.fftshift(p13.phi_FT)
+    p31.phi_FT = np.fft.fftshift(p31.phi_FT)
+    p23.phi_FT = np.fft.fftshift(p23.phi_FT)
+    p32.phi_FT = np.fft.fftshift(p32.phi_FT)
+
+    N_lo = (self.q - self.N/2)
+    N_hi = (self.q + self.N/2)
+
+    p12.freqs = np.arange(N_lo, N_hi, 1)/Orbit.Tobs
+
+    tdi_GW = td.TDI(p12, p21, p13, p31, p23, p32, Orbit)
+
+    tdi_GW.f_min = p12.freqs[0]
+    tdi_GW.f_max = p12.freqs[-1]
+
+    if (tdi_GW.f_min < 0):
+        tdi_GW.f_min == 0
+
+    return tdi_GW
 	
 def calc_gw_snr(self, X_flag=None):
     """ Calculate the SNR of the GW burst """
@@ -264,7 +280,7 @@ def calculate_Fisher(self, X_flag=None):
     orb = self.Orbit
     t = np.arange(0.0, orb.Tobs, orb.dt)
 
-    epsilon = 1.0e-6
+    epsilon = 1.0e-8
     NP = IDX_ellip+1 ## wv.IDX_phi0+1
     Fisher = np.zeros((NP, NP))
 

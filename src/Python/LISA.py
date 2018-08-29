@@ -61,13 +61,20 @@ def get_instrument_noise(self, f, X_flag=None):
 
     f_star = Clight/(2.*np.pi*self.L) # TODO: will change when we go to second gen TDI
     fonfs  = f/f_star
-
-    red  = 16.0*( (2.0e-5/f)**10.0 + (1.0e-4/f)**2. )
+    
+#     huh = np.min(f)
+#     if (huh<1.0e-4):
+#         print('Go fuck yourself.... {}', huh)
+    
+    red = 16.0*( (2.0e-5/f)**10.0 + (1.0e-4/f)**2. )
+    red[np.isnan(red)] = 1.
+        
     Sloc = 2.89e-24;
 
     trans = np.sin(fonfs)**2.0 # transfer function
 
     if (X_flag==None):
+
         SnAE = 16./3.*trans*( (2.0+np.cos(fonfs))*(Sps + Sloc)  + \
                         2.0*(3.0 + 2.0*np.cos(fonfs) + np.cos(2.0*fonfs)) \
                            *(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.0*(1.0+red)))/(2.0*self.L)**2.0
@@ -75,6 +82,8 @@ def get_instrument_noise(self, f, X_flag=None):
         SnT = 16./3.*trans*(0.5*(Sps + Sloc)*(1. - np.cos(fonfs)) + \
                            (1. - 2.*np.cos(fonfs) + np.cos(fonfs)**2) \
                           *(Sloc/2.0 + Sacc/(2.0*np.pi*f)**4.0*(1.0+red)))/(2.0*self.L)**2.0 
+            
+        
 
         return SnAE, SnT
 

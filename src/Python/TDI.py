@@ -51,7 +51,10 @@ def get_TDI_snr(self, f_min, f_max, X_flag=None):
     
     if (X_flag == None):
         SnAE, SnT = self.Orbit.get_Sn(self.freqs[mask])
-
+        
+#         mask_NaNs = np.isnan(SnAE)
+#         SnAE[mask_NaNs] = 1.0e-20
+        
         SNR_A = 4.0*np.sum( self.A[mask]*np.conjugate(self.A[mask])/SnAE).real*df
         SNR_E = 4.0*np.sum( self.E[mask]*np.conjugate(self.E[mask])/SnAE).real*df
 
@@ -79,13 +82,13 @@ def get_TDI_overlap(tdi1, tdi2, f_min, f_max, X_flag=None):
     df = freqs[1] - freqs[0]
 
     if (X_flag == None):
-        d1_A = tdi1.A[mask1]
-        d1_E = tdi1.E[mask1]
-        d1_T = tdi1.T[mask1]
+        d1_A = np.copy(tdi1.A[mask1])
+        d1_E = np.copy(tdi1.E[mask1])
+        d1_T = np.copy(tdi1.T[mask1])
 
-        d2_A = tdi2.A[mask2]
-        d2_E = tdi2.E[mask2]
-        d2_T = tdi2.T[mask2]
+        d2_A = np.copy(tdi2.A[mask2])
+        d2_E = np.copy(tdi2.E[mask2])
+        d2_T = np.copy(tdi2.T[mask2])
         
         SnAE, SnT = tdi1.Orbit.get_Sn(freqs)
 
