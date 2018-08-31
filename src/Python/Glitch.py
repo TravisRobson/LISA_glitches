@@ -160,7 +160,7 @@ def adjust_to_target_snr(self, target, X_flag=None):
 def calc_Fisher(self, X_flag=None):
     """ Calculate the Fisher matrix for the glitch object """
     
-    ep = 1.0e-9
+    ep = 1.0e-11
     
     Fisher = np.zeros((IDX_comp_id, IDX_comp_id))
            
@@ -214,7 +214,7 @@ def calc_Fisher(self, X_flag=None):
             f_min = np.max([glitch_p_RHS.f_min, glitch_m_RHS.f_min, glitch_p_LHS.f_min, glitch_m_LHS.f_min])
             f_max = np.min([glitch_p_RHS.f_max, glitch_m_RHS.f_max, glitch_p_LHS.f_max, glitch_m_LHS.f_max])
 
-            Fisher[i][j]   = np.sum(td.get_TDI_overlap(glitch_p_LHS.TDI, glitch_p_RHS.TDI, glitch_p_RHS.f_min, glitch_p_RHS.f_max, X_flag))
+            Fisher[i][j]   = np.sum(td.get_TDI_overlap(glitch_p_LHS.TDI, glitch_p_RHS.TDI, f_min, f_max, X_flag))
             
             del glitch_p_RHS
             del glitch_m_RHS

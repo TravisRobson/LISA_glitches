@@ -188,11 +188,11 @@ def calc_k(self):
 def set_t(self):
     """ Set the times associated with the TDI footprint """
 
-    N_cycles =  6*self.Orbit.Tobs/self.tau
+    N_cycles =  4*self.Orbit.Tobs/self.tau
     N_cycles = int(2**np.ceil(np.log2(N_cycles)))
 
-    if (N_cycles < 128):
-        N_cycles = 128
+    if (N_cycles < 2):
+        N_cycles = 2
 #     if (N_cycles > int(np.ceil(self.f0*self.Orbit.Tobs))):
 #         N_cycles = int(  2**np.floor(np.log2(self.f0*self.Orbit.Tobs/4))  )
         
@@ -279,25 +279,28 @@ def calculate_Fisher(self, X_flag=None):
 
     orb = self.Orbit
     t = np.arange(0.0, orb.Tobs, orb.dt)
+    
+    
+    param_copy = np.copy(self.paramsND)
 
     epsilon = 1.0e-8
     NP = IDX_ellip+1 ## wv.IDX_phi0+1
     Fisher = np.zeros((NP, NP))
 
     for i in range(NP):
-        self.paramsND[i] += epsilon
-        gw_p_LHS = Burst(copy.deepcopy(self.paramsND), orb)
+        param_copy[i] += epsilon
+        gw_p_LHS = Burst(np.copy(param_copy), orb)
         gw_p_LHS.construct_detector_tensor()
         gw_p_LHS.calculate_strain()
         gw_p_LHS.TDI = gw_p_LHS.construct_TDI(orb)
 
-        self.paramsND[i] -= 2*epsilon
-        gw_m_LHS = Burst(copy.deepcopy(self.paramsND), orb)
+        param_copy[i] -= 2*epsilon
+        gw_m_LHS = Burst(np.copy(param_copy), orb)
         gw_m_LHS.construct_detector_tensor()
         gw_m_LHS.calculate_strain()
         gw_m_LHS.TDI = gw_m_LHS.construct_TDI(orb)
 
-        self.paramsND[i] += epsilon
+        param_copy[i] += epsilon
 
         if (X_flag==None):
             gw_p_LHS.TDI.A = (gw_p_LHS.TDI.A - gw_m_LHS.TDI.A)/(2*epsilon)
@@ -307,19 +310,19 @@ def calculate_Fisher(self, X_flag=None):
             gw_p_LHS.TDI.X = (gw_p_LHS.TDI.X - gw_m_LHS.TDI.X)/(2*epsilon)
 
         for j in range(i, NP):
-            self.paramsND[j] += epsilon
-            gw_p_RHS = Burst(copy.deepcopy(self.paramsND), orb)
+            param_copy[j] += epsilon
+            gw_p_RHS = Burst(np.copy(param_copy), orb)
             gw_p_RHS.construct_detector_tensor()
             gw_p_RHS.calculate_strain()
             gw_p_RHS.TDI = gw_p_RHS.construct_TDI(orb)
 
-            self.paramsND[j] -= 2*epsilon
-            gw_m_RHS = Burst(copy.deepcopy(self.paramsND), orb)
+            param_copy[j] -= 2*epsilon
+            gw_m_RHS = Burst(np.copy(param_copy), orb)
             gw_m_RHS.construct_detector_tensor()
             gw_m_RHS.calculate_strain()
             gw_m_RHS.TDI = gw_m_RHS.construct_TDI(orb)
 
-            self.paramsND[j] += epsilon    
+            param_copy[j] += epsilon    
 
             if (X_flag==None):
                 gw_p_RHS.TDI.A = (gw_p_RHS.TDI.A - gw_m_RHS.TDI.A)/(2*epsilon)

@@ -20,7 +20,8 @@ def get_Psi_FT(f, Wavelet):
 def evaluate_wavelet(self, t):
     """ Return the value of the Sine-Gaussian wavelet at time(s) t """	
 
-    arg1 = 2.*np.pi*self.f0*(t - self.t0) + self.phi0
+    #arg1 = 2.*np.pi*self.f0*(t - self.t0) + self.phi0
+    arg1 = 2.*np.pi*self.f0*t + self.phi0
     arg2 = (t - self.t0)/self.tau
 
     result = self.A*(np.cos(arg1) + 1.0j*np.sin(arg1))*np.exp(-arg2**2)

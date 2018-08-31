@@ -62,12 +62,7 @@ def get_instrument_noise(self, f, X_flag=None):
     f_star = Clight/(2.*np.pi*self.L) # TODO: will change when we go to second gen TDI
     fonfs  = f/f_star
     
-#     huh = np.min(f)
-#     if (huh<1.0e-4):
-#         print('Go fuck yourself.... {}', huh)
-    
     red = 16.0*( (2.0e-5/f)**10.0 + (1.0e-4/f)**2. )
-    red[np.isnan(red)] = 1.
         
     Sloc = 2.89e-24;
 
