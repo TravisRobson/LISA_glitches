@@ -118,13 +118,13 @@ void TDI::phase_to_tdi(list<vector<complex<double>>> *phase_list, int N_lo, doub
 
 	int N = p12.size(); // number of frequency samples
 
-	this->X = vector<complex<double>>(N,0);
-	this->Y = vector<complex<double>>(N,0);
-	this->Z = vector<complex<double>>(N,0);
+	this->X = vector<complex<double>>(N);
+	this->Y = vector<complex<double>>(N);
+	this->Z = vector<complex<double>>(N);
 
-	this->A = vector<complex<double>>(N,0);
-	this->E = vector<complex<double>>(N,0);
-	this->T = vector<complex<double>>(N,0);
+	this->A = vector<complex<double>>(N);
+	this->E = vector<complex<double>>(N);
+	this->T = vector<complex<double>>(N);
 
 	complex<double> phase3, phase2, phase1;
 	complex<double> j (0, 1.0); // imaginary number

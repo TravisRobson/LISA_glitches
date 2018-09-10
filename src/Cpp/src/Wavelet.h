@@ -13,6 +13,7 @@
 
 using namespace std;
 
+#include "Constants.h"
 #include "TDI.h"
 #include "LISA.h"
 using namespace tdi;
@@ -27,34 +28,51 @@ namespace wv {
 #define IDX_tau  3
 #define IDX_phi0 4
 
+#define IDX_cos_theta 5
+#define IDX_phi 6
+#define IDX_psi 7
+#define IDX_ellip 8
+
+#define A_scale 1.0e-20
+#define f0_scale 1.0e-3
+#define t0_scale WEEK
+#define tau_scale HOUR
+
 
 class Wavelet {
 
 public:
+	Wavelet();
 	Wavelet(string, vector<double>);
 	virtual ~Wavelet();
 	Wavelet(const Wavelet &src, int flag); // copy constructor
 
 	void calc_TDI(LISA *lisa); // construct the TDI for a given wavelet
-	void calc_OP12_TDI(double T);
+	void calc_burst_TDI(LISA *lisa);
+	void calc_OP12_TDI(LISA *lisa);
 	void set_snr(LISA *lisa);
 	void adjust_snr(double snr_target, LISA *lisa);
 	void set_Fisher(LISA *lisa);
 	tuple <vector<double>,vector<vector<double>>> get_EigenBS();
 
+	void Unwrap_Phase();
+
+	string  get_name() const { return name; }
+
 	TDI tdi;
 	double snr;
 	vector<vector<double>> Fisher;
+	vector<double> paramsND;
 	int D;
 
 private:
 	string name;
-	vector<double> paramsND;
+
 
 };
 
 void unpack_glitch_params(vector<double> paramsND, double *A, double *f0, double *t0, double *tau, double *phi0);
-
+void unpack_burst_params(vector<double> paramsND, double *cos_theta, double *phi, double *psi, double *ellip);
 
 
 } /* namespace wv */

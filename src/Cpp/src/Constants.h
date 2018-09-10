@@ -13,6 +13,8 @@
 #define dt 15.0
 #define mHz 1.0e-3
 
+#define AU 1.49597870660e11
+
 
 
 #endif /* CONSTANTS_H_ */
