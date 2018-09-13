@@ -134,9 +134,13 @@ void TDI::phase_to_tdi(list<vector<complex<double>>> *phase_list, int N_lo, doub
 	{
 		fonfs  = (i+N_lo)/T/fstar;
 
-		phase3 = exp(-j*3.*fonfs);
-		phase2 = exp(-j*2.*fonfs);
-		phase1 = exp(-j*1.*fonfs);
+//		phase3 = exp(-j*3.*fonfs);
+//		phase2 = exp(-j*2.*fonfs);
+//		phase1 = exp(-j*1.*fonfs);
+
+		phase1 = exp(-j*fonfs);
+		phase2 = phase1*phase1;
+		phase3 = phase2*phase1;
 
 		this->X[i] = (p12[i] - p13[i])*phase3 + (p21[i] - p31[i])*phase2 +
 					 (p13[i] - p12[i])*phase1 + (p31[i] - p21[i]);
@@ -173,6 +177,12 @@ double nwip(TDI *a, TDI *b, LISA *lisa)
 		fi = (N_lo + i)/T;
 		SnAEi = lisa->SnAE(fi);
 		SnTi  = lisa->SnT (fi);
+
+		if (SnAEi != SnAEi or SnTi != SnTi)
+		{
+			SnAEi = INFINITY;
+			SnTi  = INFINITY;
+		}
 
 		overlap += real(a->A[dN_lo_a + i]*conj(b->A[dN_lo_b + i]) + a->E[dN_lo_a + i]*conj(b->E[dN_lo_b + i]))/SnAEi;
 		overlap += real(a->T[dN_lo_a + i]*conj(b->T[dN_lo_b + i]))/SnTi;

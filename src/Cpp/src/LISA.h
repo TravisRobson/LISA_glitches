@@ -35,7 +35,7 @@ public:
 	double SnT(double f);
 	double SnX(double f);
 
-	void SC_position_analytic(double t, vector<double> x, vector<double> y, vector<double> z);
+	void SC_position_analytic(double t, vector<double> *x, vector<double> *y, vector<double> *z);
 
 	// getters
 	double get_T();

@@ -9,6 +9,7 @@
 #define G_B_MCMC_H_
 
 #include <map>
+#include <string>
 
 #include "Wavelet.h"
 #include "LISA.h"
@@ -37,22 +38,35 @@ using namespace ls;
 #define phi0_lo 0.0
 #define phi0_hi 2*M_PI
 
+// burst parameters bounds
+#define cos_theta_lo -1.0
+#define cos_theta_hi  1.0
+
+#define phi_lo 0.0
+#define phi_hi 2*M_PI
+
+#define psi_lo 0.0
+#define psi_hi M_PI
+
+#define ellip_lo 0.0
+#define ellip_hi 1.0
+
 
 namespace mc {
 
-class PDF
-{
-public:
-	PDF();
-	virtual ~PDF();
-	//virtual PDF(const PDF&);
-
-	gsl_rng *r;
-	double weight;
-
-	virtual vector<double> rvs(vector<double> paramsND, double T) { ; }
-	virtual double logpdf(vector<double> paramND) { ; }
-};
+//class PDF
+//{
+//public:
+//	PDF();
+//	virtual ~PDF();
+//	//virtual PDF(const PDF&);
+//
+//	gsl_rng *r;
+//	double weight;
+//
+//	virtual vector<double> rvs(vector<double> paramsND, double T) { ; }
+//	virtual double logpdf(vector<double> paramND) { ; }
+//};
 
 class Model {
 public:
@@ -83,12 +97,14 @@ public:
 	vector< vector<vector<double>> > *history;
 	int hist_stride;
 	vector<double> Temps;
+	int acc, acc_cnt;
+	string name;
 
 	vector<double> rvs(vector<double> paramsND, double T);
 	double logpdf(vector<double> paramND);
 };
 
-class Proposal_Fisher : public PDF
+class Proposal_Fisher //: public PDF
 {
 public:
 	Proposal_Fisher();
@@ -101,12 +117,14 @@ public:
 	vector<double> Temps;
 	vector< vector<double> > e_vals_list;
 	vector< vector<vector<double>> > e_vecs_list;
+	int acc, acc_cnt;
+	string name;
 
 	vector<double> rvs(vector<double> paramsND, double T);
 	double logpdf(vector<double> paramND);
 };
 
-class Prior : public PDF
+class Prior //: public PDF
 {
 public:
 	Prior();
@@ -117,6 +135,43 @@ public:
 	gsl_rng *r;
 	double weight;
 	double T; // observation period for t0 prior
+	int acc, acc_cnt;
+	string name;
+
+	double logpdf(vector<double> paramsND);
+	vector<double> rvs(vector<double> paramsND, double T);
+};
+
+class Proposal_Target
+{
+public:
+	Proposal_Target();
+	virtual ~Proposal_Target();
+	Proposal_Target(double weight, gsl_rng *r, double f0, double tau, double sig_f0, double sig_tau);
+
+	gsl_rng *r;
+	double weight;
+	double f0, tau, sig_f0, sig_tau;
+	double weight_uni, weight_gau;
+	double fact_gau;
+	int acc, acc_cnt;
+	string name;
+
+	double logpdf(vector<double> paramsND);
+	vector<double> rvs(vector<double> paramsND, double T);
+};
+
+class Proposal_TimeShift
+{
+public:
+	Proposal_TimeShift();
+	virtual ~Proposal_TimeShift();
+	Proposal_TimeShift(double weight, gsl_rng*r);
+
+	double weight, sig_t0, sig_phi0;
+	gsl_rng *r;
+	int acc, acc_cnt;
+	string name;
 
 	double logpdf(vector<double> paramsND);
 	vector<double> rvs(vector<double> paramsND, double T);
@@ -127,9 +182,11 @@ struct Proposal
 	Proposal_Fisher P_Fisher;
 	Prior prior;
 	Proposal_DE P_DE;
+	Proposal_Target P_Target;
+	Proposal_TimeShift P_TimeShift;
 };
 
-vector<double> propose_params(struct Proposal *, vector<double> paramsND, double T);
+tuple<vector<double>, double, double, string> propose_params(struct Proposal *, vector<double> paramsND, double T);
 
 vector<double> adapt_Temps(vector<double> Temps, vector<int> swap, vector<int> swap_cnt, int t);
 
