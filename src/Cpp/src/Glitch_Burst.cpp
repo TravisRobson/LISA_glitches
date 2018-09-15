@@ -4,6 +4,10 @@
 // Version     :
 // Copyright   : Your copyright notice
 // Description : Hello World in C++, Ansi-style
+//
+//
+// -ffast-math -ftree-vectorize
+//
 //============================================================================
 
 #include <iostream>
@@ -13,8 +17,6 @@
 #include <string>
 #include <vector>
 #include <cmath>
-#include <list>
-#include <map>
 
 using namespace std;
 
@@ -27,6 +29,7 @@ using namespace std;
 #include "Wavelet.h"
 #include "LISA.h"
 #include "TDI.h"
+#include "IO.h"
 
 using namespace wv;
 using namespace ls;
@@ -38,106 +41,35 @@ using namespace mc;
 #include <gsl/gsl_errno.h>
 #include <gsl/gsl_spline.h>
 
-
 int main(int argc, char **argv)
 {
-	auto start = chrono::system_clock::now();
-
-	int i, j, k;
-
-	double fi;
-	complex <double> hi;
+	auto start = chrono::system_clock::now(); // time the duration of this program
 
 	// Find an observation period  greater than or equal to a week whose
 	//		number of samples is a power of 2
 	int N    = pow(2, ceil(log2(WEEK/dt)) );
 	double T = N*dt;
-
-	// Morlet-Gabor Wavelet parameters
-	double A    = 1.0e-20;
-	double f0   = 20.0e-3;
-	double t0   = 0.5*T;
-	double tau  = 5*HOUR;
-	double phi0 = 1.2;
-
 	cout << "Beginning Run" << "\n";
-	cout << "T............. " << T/WEEK << "\n";
-	cout << "Q............. " << 2*M_PI*f0*tau << "\n";
+	cout << "T............. " << T/WEEK << " weeks\n";
 
-	// setup the LISA orbit
-	LISA *lisa = new LISA(T);
-
-	vector<double> paramsND = {log(A/A_scale), f0/f0_scale, t0/t0_scale, log(tau/tau_scale), phi0};
-	Wavelet *wavelet = new Wavelet("glitch_OP12", paramsND);
-//	vector<double> paramsND = {log(A/A_scale), f0/f0_scale, t0/t0_scale, log(tau/tau_scale), phi0,
-//								cos(1.1*M_PI), 1.2*M_PI, 0.34*M_PI, 0.3};
-//	Wavelet *wavelet = new Wavelet("burst", paramsND);
-
-	wavelet->calc_TDI(lisa);
-	// calculate SNR and adjust it to the target SNR
-	wavelet->set_snr(lisa);
-	cout << "initial AET snr.......... " << wavelet->snr << endl;
-	wavelet->adjust_snr(8.0, lisa);
-	cout << "adjusted AET snr......... " << wavelet->snr << endl;
-
-
-//-ffast-math -ftree-vectorize
-
-	ofstream out_file; // Print the Glitch data out to a file
-	complex<double> Ai, Ei, Ti;
-
-//	cout << "here.... " << exp((complex<double> {1.,2.})*3.) << endl;
-//	cout << "here.... " << pow(exp((complex<double> {1.,2.})), 3.) << endl;
-
-	out_file.open("../Python/tests/Glitch_test.dat");
-	for (i=0; i<wavelet->tdi.X.size(); i++)
-	{
-		fi = (i+wavelet->tdi.get_N_lo())/T;
-
-		Ai = wavelet->tdi.A[i];
-		Ei = wavelet->tdi.E[i];
-		Ti = wavelet->tdi.T[i];
-
-		out_file << scientific << setprecision(15) << fi << " " << real(Ai) << " " << imag(Ai) << " "
-																<< real(Ei) << " " << imag(Ei) << " "
-																<< real(Ti) << " " << imag(Ti) << "\n";
-	}
-	out_file.close();
-
-
-	wavelet->set_Fisher(lisa);
-	vector<double> e_vals;
-	vector<vector<double>> e_vecs;
-	for (i=0; i<wavelet->D; i++) vector<double> e_vecs[i];
-	auto result = wavelet->get_EigenBS();
-	e_vals = get<0>(result);
-	e_vecs = get<1>(result);
-
-	////////////////////////////////////////////////
-	Model modelX0 = Model(*wavelet);
-	modelX0.set_logL(wavelet->tdi, lisa);
-	cout << "modelX0 logL............. " << modelX0.logL << endl;
-
-	// setup random number generator
-	gsl_rng_env_setup();
-	int seed = 1;
-	const gsl_rng_type *TT = gsl_rng_default;
-	gsl_rng *r = gsl_rng_alloc (TT);
-	gsl_rng_set(r, seed);
-
-	/////// Setup command line arguments
-	int N_MCMC, N_BURN, N_undersample;
-	int PT=1;   // PTMCMC
-	int DB = 0; // detailed balance test flag
+	////////////////// Setup command line arguments ///////////////////
+	int N_MCMC, N_BURN, N_undersample, seed;
+	int PT = 1;   // PTMCMC
+	int DB = 0;  // detailed balance test flag
 	int flag_adaptive_temps = 0;
+
+	string input_file;
+
 	cxxopts::Options options("GlitchBurstMCMC", "Calculate model posteriors via MCMC, evidence via PTMCMC");
 	options.add_options()
-		("n,nmcmc", "Number of MCMC samples", cxxopts::value<int>(N_MCMC))
-		("b,nburn", "Number of Burn in samples", cxxopts::value<int>(N_BURN))
-		("u,nunder", "Number to undersample by", cxxopts::value<int>(N_undersample))
-		("p,ptmcmc", "Number to undersample by")
-		("d, detbail", "Perform detailed balance test")
-		("a, adaptt", "Adaptive temperature ladder")
+		("n,nmcmc",      "Number of MCMC samples", cxxopts::value<int>(N_MCMC))
+		("b,nburn",      "Number of Burn in samples", cxxopts::value<int>(N_BURN))
+		("u,nunder",     "Number to undersample by", cxxopts::value<int>(N_undersample)->default_value("10"))
+		("p,ptmcmc",     "Number to undersample by")
+		("d, detbail",   "Perform detailed balance test")
+		("a, adaptt",    "Adaptive temperature ladder")
+		("f, inputfile", "Model Data setup file", cxxopts::value<string>(input_file))
+		("s, seed",      "random number generator seed", cxxopts::value<int>(seed)->default_value("1"))
 		;
 	auto opts = options.parse(argc, argv);
 
@@ -145,10 +77,25 @@ int main(int argc, char **argv)
 	if (opts.count("adaptt")) flag_adaptive_temps = 1;
 	if (opts.count("ptmcmc")) PT = 1;
 
-	cout << N_MCMC << endl;
-	cout << opts.count ("nmcmc") << endl;
+	/////////////////////////////////////////////////////////////////////
 
-	//////////////
+	int i, j, k;
+
+	complex <double> hi;
+
+
+	struct Files *Files= new struct Files;
+	LISA *lisa = new LISA(T); // setup the LISA orbit
+	//Wavelet *wavelet = parse_config_file(input_file, T, lisa, Files);
+	vector<Model*> models;
+	models = parse_config_file(input_file, T, lisa, Files);
+	Model *modelX0 = models.at(0);
+	Model *model_true = models.at(1);
+
+
+//	Model modelX0 = Model(*wavelet);
+//	modelX0.set_logL(wavelet->tdi, lisa);
+	cout << "modelX0 logL............. " << modelX0->logL << endl;
 	// setup temperature ladder
 	int N_Temps = 1;
 	double gam = 1.3;
@@ -157,7 +104,7 @@ int main(int argc, char **argv)
 	{
 		double T0 = 1; // initial temperature
 		double snr_eff = 2.0;
-		T_max = pow(modelX0.wave.snr, 2.0)/pow(snr_eff, 2.0);
+		T_max = pow(modelX0->wave.snr, 2.0)/pow(snr_eff, 2.0);
 		while (T0 < T_max)
 		{
 			T0 *= gam;
@@ -173,7 +120,29 @@ int main(int argc, char **argv)
 		Temps[N_Temps-1] = T_max;
 	}
 
-	// setup the infrastructure for the adaptive temperature ladder
+	modelX0->wave.set_Fisher(lisa);
+	vector<double> e_vals;
+	vector<vector<double>> e_vecs;
+	for (i=0; i<modelX0->wave.D; i++) vector<double> e_vecs[i];
+	auto result = modelX0->wave.get_EigenBS();
+	e_vals = get<0>(result);
+	e_vecs = get<1>(result);
+	// setup e_vals_list and e_vecs_list
+	vector<vector<double>> e_vals_list;
+	for (i=0; i<N_Temps; i++) e_vals_list.push_back(e_vals);
+	vector< vector<vector<double>> > e_vecs_list;
+	for (i=0; i<N_Temps; i++) e_vecs_list.push_back(e_vecs);
+
+	////////////////////////////////////////////////
+
+
+	// setup random number generator
+	gsl_rng_env_setup();
+	const gsl_rng_type *TT = gsl_rng_default;
+	gsl_rng *r = gsl_rng_alloc (TT);
+	gsl_rng_set(r, seed);
+
+	////////////////// setup the infrastructure for the adaptive temperature ladder /////////////////////
 	vector<double> n_up(N_Temps,0), n_down(N_Temps,0);
 	vector<double> up_down_tracker(N_Temps,0);
 
@@ -182,22 +151,19 @@ int main(int argc, char **argv)
 
 	vector<double> f(N_Temps,0), f_smooth(N_Temps,0);
 	for (j=0; j<N_Temps; j++) f_smooth[j] = 1 - (double)j/(N_Temps-1);
-	double weight = 0.8; // how much to balance measured f by the desired f (f_smooth)
+	double weight = 0.95; // how much to balance measured f by the desired f (f_smooth)
 	double dir;
 	int t = 1000;
+	/////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	// setup e_vals_list and e_vecs_list
-	vector<vector<double>> e_vals_list;
-	for (i=0; i<N_Temps; i++) e_vals_list.push_back(e_vals);
-	vector< vector<vector<double>> > e_vecs_list;
-	for (i=0; i<N_Temps; i++) e_vecs_list.push_back(e_vecs);
 
-	/////////// set up Prior and proposal distributions /////////
+
+	////////////////////// set up Prior and proposal distributions //////////////////////////
 	double weight_prior     = 0.05;
-	double weight_DE        = 0.2; // 0.25
-	double weight_TimeShift = 0.1; // 0.35
-	double weight_Target    = 0.1; // 0.45
-	double weight_Fisher    = 1 - weight_prior - weight_DE - weight_TimeShift - weight_Target; // 0.55
+	double weight_DE        = 0.5;
+	double weight_TimeShift = 0.1;
+	double weight_Target    = 0.1;
+	double weight_Fisher    = 1 - weight_prior - weight_DE - weight_TimeShift - weight_Target;
 
 	Prior prior = Prior (weight_prior, r, T);
 
@@ -205,11 +171,13 @@ int main(int argc, char **argv)
 	typedef vector<double> D1;
 	typedef vector<D1> D2;
 	typedef vector<D2> matrix_3D;
-	matrix_3D *history = new matrix_3D(hist_stride, D2(N_Temps, D1(wavelet->D,0)) );
+	matrix_3D *history = new matrix_3D(hist_stride, D2(N_Temps, D1(modelX0->wave.D,0)) );
 	Proposal_DE P_DE = Proposal_DE(weight_DE, r, history, hist_stride, Temps);
 
-	Proposal_Target P_Target = Proposal_Target(weight_Target, r, wavelet->paramsND[IDX_f0], wavelet->paramsND[IDX_tau],
-												3./sqrt(wavelet->Fisher[IDX_f0][IDX_f0]), 3./sqrt(wavelet->Fisher[IDX_tau][IDX_tau]));
+	Proposal_Target P_Target = Proposal_Target(weight_Target, r, modelX0->wave.paramsND[IDX_f0],
+												modelX0->wave.paramsND[IDX_tau],
+												3./sqrt(modelX0->wave.Fisher[IDX_f0][IDX_f0]),
+												3./sqrt(modelX0->wave.Fisher[IDX_tau][IDX_tau]));
 
 	Proposal_TimeShift P_TimeShift = Proposal_TimeShift(weight_TimeShift, r);
 
@@ -221,7 +189,7 @@ int main(int argc, char **argv)
 	prop->P_DE = P_DE;
 	prop->P_Target = P_Target;
 	prop->P_TimeShift = P_TimeShift;
-	////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////
 
 	// acceptance counters
 	vector<int> acc(N_Temps,0);
@@ -237,8 +205,8 @@ int main(int argc, char **argv)
 	double Ta, Tb; // Temperatures for PRMCMC swapping
 
 	// create models
-	Model modelY = Model(modelX0);
-	Model modelX = Model(modelX0);
+	Model modelY = Model(*modelX0);
+	Model modelX = Model(*modelX0);
 
 	vector<Model*> modelX_list(N_Temps);
 	for (i=0; i<N_Temps; i++)
@@ -247,10 +215,10 @@ int main(int argc, char **argv)
 		modelX_list.push_back(m);
 		delete m;
 	}
-	if (DB==1) modelX0.logL = 1;
+	if (DB==1) modelX0->logL = 1;
 	for (i=0; i<N_Temps; i++)
 	{
-		modelX_list[i] = new Model(modelX0); // now I can copy
+		modelX_list[i] = new Model(*modelX0); // now I can copy
 	}
 
 	double logQyx, logQxy;
@@ -258,15 +226,17 @@ int main(int argc, char **argv)
 	tuple<vector<double>, double, double, string> out;
 	string name;
 
-	ofstream logL_file; // Print the Glitch data out to a file
+	ofstream logL_file, out_file;
 	ofstream T1_file, THot_file, ID_file;
 	int loc;
-	ProgressBar progressBar(N_MCMC + N_BURN, 70); // begin status bar
-	out_file.open("../Python/tests/MCMC_Glitch_test.dat"); // open output file
-	T1_file.open("../Python/tests/MCMC_Glitch_T1.dat"); // open output file
-	THot_file.open("../Python/tests/MCMC_Glitch_THot.dat"); // open output file
-	logL_file.open("../Python/tests/MCMC_Glitch_logL.dat"); // open output file
-	ID_file.open("../Python/tests/MCMC_IDs.dat");
+	ProgressBar progressBar(N_MCMC + N_BURN, 70);  // begin status bar
+
+	out_file.open  ("../Python/tests/MCMC_Glitch_test.dat");
+	T1_file.open   ("../Python/tests/MCMC_Glitch_T1.dat");
+	THot_file.open ("../Python/tests/MCMC_Glitch_THot.dat");
+	logL_file.open ("../Python/tests/MCMC_Glitch_logL.dat");
+	ID_file.open   ("../Python/tests/MCMC_IDs.dat");
+
 	for (i=-N_BURN; i<N_MCMC; i++)
 	{
 		++progressBar;
@@ -295,7 +265,7 @@ int main(int argc, char **argv)
 					{
 						modelY.wave.calc_TDI(lisa);
 						modelY.wave.set_snr(lisa);
-						modelY.set_logL(wavelet->tdi, lisa);
+						modelY.set_logL(model_true->wave.tdi, lisa);
 					}
 					else modelY.logL = 1.0;
 
@@ -317,12 +287,20 @@ int main(int argc, char **argv)
 				}
 			}
 		}
-		progressBar.display();
+		if ((i+N_BURN)%50 == 0) progressBar.display();
+		if (i==0 & PT == 1)
+		{
+			for (j=0; j<N_Temps; j++)
+			{
+				swap_cnt[j] = 0;
+				swap[j] = 0;
+			}
+		}
 
 		///////// Perform PTMCMC /////////
 		for (j=0; j<N_Temps-1; j++)
 		{
-			if (i>=0) swap_cnt[j]++;
+			swap_cnt[j]++;
 			whoa = ID_list[j];
 			whob = ID_list[j+1];
 
@@ -335,8 +313,8 @@ int main(int argc, char **argv)
 			u = log(gsl_ran_flat(r, 0, 1.0));
 			if (u < logH)
 			{
-				if (i>=0) swap[j]++;
-				ID_list[j] = whob;
+				swap[j]++;
+				ID_list[j]   = whob;
 				ID_list[j+1] = whoa;
 			}
 		}
@@ -359,7 +337,7 @@ int main(int argc, char **argv)
 		{
 			if (i%t == 0 & i>=-N_BURN+t)
 			{
-				for (j=0; j<N_Temps; j++) f[j] = weight*n_up[j]/(n_up[j] + n_down[j]) + (1-weight)*f_smooth[j];
+				for (j=0; j<N_Temps; j++) f[j] = weight*(double)n_up[j]/(n_up[j] + n_down[j]) + (1-weight)*f_smooth[j];
 			    gsl_interp_accel *acc = gsl_interp_accel_alloc ();
 			    gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, N_Temps);
 			    double f_copy[N_Temps];
@@ -394,6 +372,9 @@ int main(int argc, char **argv)
 			//Temps = adapt_Temps(Temps, swap, swap_cnt, i + N_BURN);
 			prop->P_Fisher.Temps = Temps;
 			prop->P_DE.Temps = Temps;
+			//for (j=0; j<N_Temps-1; j++) cout << "swap rate[" << j << "]....... " << (double)swap[j]/swap_cnt[j] << endl;
+//			for (j=0; j<N_Temps; j++) cout << "f[" << j << "]....... " << (double)n_up[j]/(n_up[j] + n_down[j]) << endl;
+//			cout << endl;
 		}
 
 		// update Fisher matrix proposal distribution
@@ -417,7 +398,7 @@ int main(int argc, char **argv)
 		loc = (i+N_BURN)%hist_stride;
 		for(j=0; j<N_Temps; j++)
 		{
-			for(k=0; k<wavelet->D; k++) history->at(loc).at(j).at(k) = modelX_list[ID_list[j]]->wave.paramsND[k];
+			for(k=0; k<modelX0->wave.D; k++) history->at(loc).at(j).at(k) = modelX_list[ID_list[j]]->wave.paramsND[k];
 		}
 		prop->P_DE.cnt++;
 
@@ -442,7 +423,7 @@ int main(int argc, char **argv)
 			}
 			T1_file << scientific << setprecision(15) << endl;
 
-			who = ID_list[N_Temps-1]; // only store the cold chain
+			who = ID_list[N_Temps-1];
 			THot_file << scientific << setprecision(15) << modelX_list.at(who)->logL;
 			for (k=0; k<modelX_list.at(who)->wave.paramsND.size(); k++)
 			{
@@ -465,9 +446,8 @@ int main(int argc, char **argv)
 	T1_file.close();
 	THot_file.close();
 	progressBar.done();
-	gsl_rng_free (r);
-	delete history;
 
+	///////////////////////////////// Report Summary Statistics ///////////////////////////////////////
 	cout << endl;
 	for (j=0; j<N_Temps; j++)
 	{
@@ -481,11 +461,13 @@ int main(int argc, char **argv)
 	cout << endl;
 	for (j=0; j<N_Temps; j++) cout << "T[" << j << "]...... " << Temps[j] << endl;
 	cout << endl;
+
+	/////////
 	ofstream Temperature_file;
-	Temperature_file.open("../Python/tests/MCMC_Temperatures.dat");
+	Temperature_file.open(Files->Temperature_file);
 	for (j=0; j<N_Temps; j++)
 	{
-		Temperature_file << scientific << setprecision(15) << Temps[j] << " " << n_up[j]/(n_up[j] + n_down[j]) << endl;
+		Temperature_file << scientific << setprecision(15) << Temps[j] << " " << (double)n_up[j]/(n_up[j] + n_down[j]) << endl;
 	}
 	Temperature_file.close();
 
@@ -496,10 +478,13 @@ int main(int argc, char **argv)
 	cout << "Proposal: TimeShift acceptance rate....... " << (double)prop->P_TimeShift.acc/prop->P_TimeShift.acc_cnt << endl;
 	////////////////////////////////////////////////
 
-	delete wavelet;
+	// handle leftover memory
+	//delete modelX0->wave;
 	delete lisa;
 	for (j=0; j<N_Temps; j++) delete modelX_list[j];
 	delete prop;
+	gsl_rng_free (r);
+	delete history;
 
 	// Find out how long the code took to run
 	auto end = chrono::system_clock::now();

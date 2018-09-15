@@ -1,0 +1,32 @@
+model burst
+model_snr 8
+model_A 1.0e-20
+model_f0 7.0e-3
+model_t0 0.5*T
+model_tau 5*HOUR
+model_phi0 1.2
+model_cos_theta 0.23
+model_phi 2.31
+model_psi 0.45
+model_ellip 0.5
+
+data burst
+data_snr 8
+data_A 1.0e-20
+data_f0 7.0e-3
+data_t0 0.5*T
+data_tau 5*HOUR
+data_phi0 1.2
+data_cos_theta 0.23
+data_phi 2.31
+data_psi 0.45
+data_ellip 0.5
+
+File_true_waveform ../Python/tests/Glitch_test.dat
+File_cold_chain ../Python/tests/MCMC_Glitch_test.dat
+File_T1_chain ../Python/tests/MCMC_Glitch_T1.dat
+File_Hot_chain ../Python/tests/MCMC_Glitch_THot.dat
+File_logL ../Python/tests/MCMC_Glitch_logL.dat
+File_IDs ../Python/tests/MCMC_IDs.dat
+File_Temps ../Python/tests/MCMC_Temperatures.dat
+

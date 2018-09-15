@@ -492,8 +492,8 @@ vector<double> adapt_Temps(vector<double> Temps, vector<int> swap, vector<int> s
 	int i;
 	int N_Temps = Temps.size();
 
-	double nu = 10;
-	double t0 = 10000;
+	double nu = 100;
+	double t0 = 1000;
 	double kappa;
 
 	// calculate the acceptance rates
@@ -512,7 +512,7 @@ vector<double> adapt_Temps(vector<double> Temps, vector<int> swap, vector<int> s
 	{
 		kappa = t0/(t0+t)/nu;
 		new_Temps[i] = new_Temps[i-1] + (Temps[i] - Temps[i-1])*exp(kappa*(A[i-1] - A[i]));
-		if (new_Temps[i]/new_Temps[i-1] < 1.1) new_Temps[i] = 1.1*new_Temps[i-1];
+		//if (new_Temps[i]/new_Temps[i-1] < 1.05) new_Temps[i] = 1.05*new_Temps[i-1];
 	}
 
 	return new_Temps;
