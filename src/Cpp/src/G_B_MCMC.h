@@ -30,9 +30,9 @@ using namespace ls;
 #define f0_lo 1.0e-3/f0_scale
 #define f0_hi 30.0e-3/f0_scale
 
-#define t0_lo 1.0/t0_scale
+#define t0_lo 0.0/t0_scale
 
-#define tau_lo log(HOUR/60/tau_scale)
+#define tau_lo log(HOUR/3600/tau_scale)
 #define tau_hi log(WEEK/7*2/tau_scale)
 
 #define phi0_lo 0.0
@@ -50,7 +50,6 @@ using namespace ls;
 
 #define ellip_lo 0.0
 #define ellip_hi 1.0
-
 
 namespace mc {
 

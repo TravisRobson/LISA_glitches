@@ -1,0 +1,24 @@
+model glitch_OP12
+model_snr 8
+model_A 1.0e-20
+model_f0 7.0e-3
+model_t0 0.5*T
+model_tau 5*HOUR
+model_phi0 1.2
+
+data glitch_OP12
+data_snr 8
+data_A 1.0e-20
+data_f0 7.0e-3
+data_t0 0.5*T
+data_tau 5*HOUR
+data_phi0 1.2
+
+File_true_waveform /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_True_Waveform_003.dat
+File_cold_chain /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_Cold_Chain_003.dat
+File_T1_chain /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_T1_Chain_003.dat
+File_Hot_chain /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_Hot_Chain_003.dat
+File_logL /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_logL_003.dat
+File_IDs /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_IDs_003.dat
+File_Temps /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Glitch_Temps_003.dat
+

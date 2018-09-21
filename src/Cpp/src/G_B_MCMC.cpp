@@ -3,6 +3,8 @@
  *
  *  Created on: Sep 7, 2018
  *      Author: travisrobson
+ *
+ *      -ffast-math -ftree-vectorize
  */
 
 #include <cmath>
@@ -10,6 +12,7 @@
 #include <iostream>
 #include <algorithm>
 #include <string>
+#include <complex>
 
 
 using namespace std;
@@ -27,6 +30,9 @@ using namespace tdi;
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
+
+#include <gsl/gsl_matrix_double.h>
+#include <gsl/gsl_linalg.h>
 
 namespace mc {
 //
@@ -61,15 +67,140 @@ Model::Model(const Model &src)
 	this->logL = src.logL;
 }
 
+gsl_matrix *invert_a_matrix(gsl_matrix *matrix)
+{
+    gsl_permutation *p = gsl_permutation_alloc(4);
+    int s;
+
+    // Compute the LU decomposition of this matrix
+    gsl_linalg_LU_decomp(matrix, p, &s);
+
+    // Compute the  inverse of the LU decomposition
+    gsl_matrix *inv = gsl_matrix_alloc(4,4);
+    gsl_linalg_LU_invert(matrix, p, inv);
+
+    gsl_permutation_free(p);
+
+    return inv;
+}
+
 void Model::set_logL(TDI data, LISA *lisa)
 {
 	double result;
 
-	result = nwip(&data, &this->wave.tdi, lisa);
+	if (this->wave.get_name() == "burst")
+	{
+		vector<double> paramsND1 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
+								    this->wave.paramsND[IDX_tau], 0.0, this->wave.paramsND[IDX_cos_theta],
+									this->wave.paramsND[IDX_phi], 0.0, 0.0};
+		Wavelet *A1 = new Wavelet("burst", paramsND1);
 
-	result -= 0.5*pow(this->wave.snr, 2.0);
+		vector<double> paramsND2 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
+								    this->wave.paramsND[IDX_tau], 0.5*M_PI, this->wave.paramsND[IDX_cos_theta],
+									this->wave.paramsND[IDX_phi], -0.25*M_PI, 0.0};
+		Wavelet *A2 = new Wavelet("burst", paramsND2);
 
-	this->logL = result;
+		vector<double> paramsND3 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
+								    this->wave.paramsND[IDX_tau], 0.0, this->wave.paramsND[IDX_cos_theta],
+									this->wave.paramsND[IDX_phi], -0.25*M_PI, 0.0};
+		Wavelet *A3 = new Wavelet("burst", paramsND3);
+
+		vector<double> paramsND4 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
+								    this->wave.paramsND[IDX_tau], 0.5*M_PI, this->wave.paramsND[IDX_cos_theta],
+									this->wave.paramsND[IDX_phi], 0.0, 0.0};
+		Wavelet *A4 = new Wavelet("burst", paramsND4);
+
+		A1->calc_TDI(lisa);
+		A2->calc_TDI(lisa);
+		A3->calc_TDI(lisa);
+		A4->calc_TDI(lisa);
+
+		vector<double> N(4);
+		N[0] = nwip(&data, &A1->tdi, lisa);
+		N[1] = nwip(&data, &A2->tdi, lisa);
+		N[2] = nwip(&data, &A3->tdi, lisa);
+		N[3] = nwip(&data, &A4->tdi, lisa);
+
+
+
+		vector<double> v1(4);
+		vector<vector<double>> M(4, v1);
+
+		M[0][0] = nwip(&A1->tdi, &A1->tdi, lisa);
+		M[0][1] = nwip(&A1->tdi, &A2->tdi, lisa);
+		M[0][2] = nwip(&A1->tdi, &A3->tdi, lisa);
+		M[0][3] = nwip(&A1->tdi, &A4->tdi, lisa);
+
+		M[1][1] = nwip(&A2->tdi, &A2->tdi, lisa);
+		M[1][2] = nwip(&A2->tdi, &A3->tdi, lisa);
+		M[1][3] = nwip(&A2->tdi, &A4->tdi, lisa);
+
+		M[2][2] = nwip(&A3->tdi, &A3->tdi, lisa);
+		M[2][3] = nwip(&A3->tdi, &A4->tdi, lisa);
+
+		M[3][3] = nwip(&A4->tdi, &A4->tdi, lisa);
+
+		M[1][0] = M[0][1];
+		M[2][0] = M[0][2];
+		M[3][0] = M[0][3];
+
+		M[2][1] = M[1][2];
+		M[3][1] = M[1][3];
+
+		M[3][2] = M[2][3];
+
+//	    for (int i=0; i<4; ++i)
+//	    {
+//	    	cout << "N[" << i << "] " << N[i] << endl;
+//	        for (int j=0; j<4; ++j)
+//			{
+//	        	cout << "M[" << i << "][" << j<< "] " << M[i][j] << endl;
+//			}
+//	        cout << endl;
+//	    }
+
+		gsl_matrix *mat = gsl_matrix_alloc(4,4);
+	    for (int i=0; i<4; ++i)
+	    {
+	        for (int j=0; j<4; ++j) gsl_matrix_set(mat, i, j, M[i][j]);
+	    }
+	    gsl_matrix *inverse = invert_a_matrix(mat);
+
+	    for (int i=0; i<4; ++i)
+	    {
+	        for (int j=0; j<4; ++j)
+			{
+	        	M[i][j] = gsl_matrix_get(inverse, i, j);
+	        	//cout << M[i][j] << endl;
+			}
+	    }
+	    gsl_matrix_free(mat);
+	    gsl_matrix_free(inverse);
+	    this->logL = 0.0;
+	    for (int i=0; i<4; i++)
+	    {
+	    	for (int j=0; j<4; j++)
+	    	{
+	    		this->logL += M[i][j]*N[i]*N[j];
+	    	}
+	    }
+	    this->logL *= 0.5;
+	    //cout << "logL.............. " << this->logL << endl << endl;
+
+		delete A1;
+		delete A2;
+		delete A3;
+		delete A4;
+
+	}
+	else
+	{
+		result = nwip(&data, &this->wave.tdi, lisa);
+
+		result -= 0.5*pow(this->wave.snr, 2.0);
+
+		this->logL = result;
+	}
 }
 
 Proposal_Fisher::Proposal_Fisher(double weight, gsl_rng *r, vector<double> Temps,  vector< vector<double> > e_vals_list, vector< vector<vector<double>> > e_vecs_list)

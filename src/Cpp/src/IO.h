@@ -22,11 +22,11 @@ using namespace mc;
 
 struct Files
 {
-	string Temperature_file;
+	string Temperature_file, File_cold_chain, File_T1_chain, File_Hot_chain, File_logL, File_IDs;
 };
 
 
-vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct Files *Files);
+vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struct Files *Files);
 
 
 

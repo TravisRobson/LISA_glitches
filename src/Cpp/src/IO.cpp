@@ -29,7 +29,7 @@ using namespace mc;
 #include <boost/algorithm/string/split.hpp>
 #include <boost/foreach.hpp>
 
-vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct Files *Files)
+vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struct Files *Files)
 {
 
 	ifstream config_file(input_file, ios::in);
@@ -180,6 +180,36 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 			boost::split(words, line, boost::is_any_of(" ") );
 			File_true_waveform = words[1];
 		}
+		tag = "File_cold_chain";
+		if (line.substr(0, tag.length()) == tag)
+		{
+			boost::split(words, line, boost::is_any_of(" ") );
+			Files->File_cold_chain = words[1];
+		}
+		tag = "File_T1_chain";
+		if (line.substr(0, tag.length()) == tag)
+		{
+			boost::split(words, line, boost::is_any_of(" ") );
+			Files->File_T1_chain = words[1];
+		}
+		tag = "File_Hot_chain";
+		if (line.substr(0, tag.length()) == tag)
+		{
+			boost::split(words, line, boost::is_any_of(" ") );
+			Files->File_Hot_chain = words[1];
+		}
+		tag = "File_logL";
+		if (line.substr(0, tag.length()) == tag)
+		{
+			boost::split(words, line, boost::is_any_of(" ") );
+			Files->File_logL = words[1];
+		}
+		tag = "File_IDs";
+		if (line.substr(0, tag.length()) == tag)
+		{
+			boost::split(words, line, boost::is_any_of(" ") );
+			Files->File_IDs = words[1];
+		}
 		tag = "File_Temps";
 		if (line.substr(0, tag.length()) == tag)
 		{
@@ -193,7 +223,7 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 	double A = stod(model_A);
 	double f0 = stod(model_f0);
 	boost::split(words, model_t0, boost::is_any_of("*"));
-	double t0 = T*stod(words[0]);
+	double t0 = (*T)*stod(words[0]);
 	boost::split(words, model_tau, boost::is_any_of("*"));
 	double tau = HOUR*stod(words[0]);
 	double phi0 = stod(model_phi0);
@@ -212,23 +242,27 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 		paramsND = {log(A/A_scale), f0/f0_scale, t0/t0_scale, log(tau/tau_scale), phi0,
 									cos_theta, phi, psi, ellip};
 	}
-	Wavelet *wavelet = new Wavelet(model_name, paramsND);
+	Wavelet *wavelet = new Wavelet(model_name, paramsND); //
 	wavelet->calc_TDI(lisa);
 	wavelet->set_snr(lisa);
 	wavelet->adjust_snr(stod(model_snr), lisa);
 
 
 	Model *modelX0 = new Model(*wavelet);
-
+	//delete wavelet;
 
 	///////////////////////
 	A = stod(data_A);
 	f0 = stod(data_f0);
-	boost::split(words, data_t0, boost::is_any_of("*"));
-	t0 = T*stod(words[0]);
 	boost::split(words, data_tau, boost::is_any_of("*"));
 	tau = HOUR*stod(words[0]);
+	double old = (*T);
+	*T = pow(2, ceil(log2(20*tau/dt)) );
+	modelX0->wave.paramsND[IDX_t0] *= (*T)/old;
+	boost::split(words, data_t0, boost::is_any_of("*"));
+	t0 = (*T)*stod(words[0]);
 	phi0 = stod(data_phi0);
+
 	vector<double> paramsND_true;
 	if (model_name.size() == 11)
 	{	// i.e. this is a glitch
@@ -246,7 +280,7 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 	}
 	cout << "Q............. " << 2*M_PI*f0*tau << "\n";
 
-	Wavelet *wavelet_true = new Wavelet(data_name, paramsND_true);
+	Wavelet *wavelet_true = new Wavelet(data_name, paramsND_true); //
 	wavelet_true->calc_TDI(lisa);
 	wavelet_true->set_snr(lisa);
 	cout << "initial AET snr.......... " << wavelet_true->snr << endl;
@@ -254,6 +288,7 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 	cout << "adjusted AET snr......... " << wavelet_true->snr << endl;
 
 	Model *model_true = new Model(*wavelet_true);
+	//delete wavelet_true;
 
 	model_true->set_logL(wavelet_true->tdi, lisa);
 	modelX0->set_logL(wavelet_true->tdi, lisa);
@@ -272,7 +307,7 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 	out_file.open(File_true_waveform);
 	for (i=0; i<wavelet->tdi.X.size(); i++)
 	{
-		fi = (i+wavelet->tdi.get_N_lo())/T;
+		fi = (i+wavelet->tdi.get_N_lo())/(*T);
 
 		Ai = wavelet->tdi.A[i];
 		Ei = wavelet->tdi.E[i];
@@ -283,6 +318,9 @@ vector<Model*> parse_config_file(string input_file, double T, LISA *lisa, struct
 																<< real(Ti) << " " << imag(Ti) << "\n";
 	}
 	out_file.close();
+
+	delete wavelet;
+	delete wavelet_true;
 
 	return models;
 }

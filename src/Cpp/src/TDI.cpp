@@ -167,7 +167,7 @@ double nwip(TDI *a, TDI *b, LISA *lisa)
 	int N_lo = max(a->get_N_lo(), b->get_N_lo());
 	int N_hi = min(a->get_N_hi(), b->get_N_hi());
 
-	if (N_lo > N_hi) return 1.0; // the signals do not overlap
+	if (N_lo > N_hi) return 0.0; // the signals do not overlap
 
 	int dN_lo_a = N_lo - a->get_N_lo();
 	int dN_lo_b = N_lo - b->get_N_lo();

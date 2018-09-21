@@ -201,6 +201,14 @@ void Wavelet::calc_burst_TDI(LISA *lisa)
 		}
 	}
 
+//	fp12 = cos(2*psi + ellip);
+//	fp13 = cos(2*psi + ellip);
+//	fp23 = cos(2*psi + ellip);
+//
+//	fc12 = cos(2*psi + ellip);
+//	fc13 = cos(2*psi + ellip);
+//	fc23 = cos(2*psi + ellip);
+
 	fp21 = fp12;
 	fp31 = fp13;
 	fp32 = fp23;

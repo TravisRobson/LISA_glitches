@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
 	////////////////// Setup command line arguments ///////////////////
 	int N_MCMC, N_BURN, N_undersample, seed;
-	int PT = 1;   // PTMCMC
+	int PT = 0;   // PTMCMC
 	int DB = 0;  // detailed balance test flag
 	int flag_adaptive_temps = 0;
 
@@ -81,17 +81,17 @@ int main(int argc, char **argv)
 
 	int i, j, k;
 
-	complex <double> hi;
+	//complex <double> hi;
 
 
 	struct Files *Files= new struct Files;
 	LISA *lisa = new LISA(T); // setup the LISA orbit
 	//Wavelet *wavelet = parse_config_file(input_file, T, lisa, Files);
 	vector<Model*> models;
-	models = parse_config_file(input_file, T, lisa, Files);
+	models = parse_config_file(input_file, &T, lisa, Files);
 	Model *modelX0 = models.at(0);
 	Model *model_true = models.at(1);
-
+	cout << "T............. " << T/WEEK << " weeks\n";
 
 //	Model modelX0 = Model(*wavelet);
 //	modelX0.set_logL(wavelet->tdi, lisa);
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 	////////////////////// set up Prior and proposal distributions //////////////////////////
 	double weight_prior     = 0.05;
 	double weight_DE        = 0.5;
-	double weight_TimeShift = 0.1;
+	double weight_TimeShift = 0.05;
 	double weight_Target    = 0.1;
 	double weight_Fisher    = 1 - weight_prior - weight_DE - weight_TimeShift - weight_Target;
 
@@ -231,11 +231,11 @@ int main(int argc, char **argv)
 	int loc;
 	ProgressBar progressBar(N_MCMC + N_BURN, 70);  // begin status bar
 
-	out_file.open  ("../Python/tests/MCMC_Glitch_test.dat");
-	T1_file.open   ("../Python/tests/MCMC_Glitch_T1.dat");
-	THot_file.open ("../Python/tests/MCMC_Glitch_THot.dat");
-	logL_file.open ("../Python/tests/MCMC_Glitch_logL.dat");
-	ID_file.open   ("../Python/tests/MCMC_IDs.dat");
+	out_file.open  (Files->File_cold_chain);
+	T1_file.open   (Files->File_T1_chain);
+	THot_file.open (Files->File_Hot_chain);
+	logL_file.open (Files->File_logL);
+	ID_file.open   (Files->File_IDs);
 
 	for (i=-N_BURN; i<N_MCMC; i++)
 	{
@@ -263,8 +263,8 @@ int main(int argc, char **argv)
 
 					if (DB == 0)
 					{
-						modelY.wave.calc_TDI(lisa);
-						modelY.wave.set_snr(lisa);
+//						modelY.wave.calc_TDI(lisa);
+//						modelY.wave.set_snr(lisa);
 						modelY.set_logL(model_true->wave.tdi, lisa);
 					}
 					else modelY.logL = 1.0;
@@ -298,24 +298,27 @@ int main(int argc, char **argv)
 		}
 
 		///////// Perform PTMCMC /////////
-		for (j=0; j<N_Temps-1; j++)
+		if (PT == 1)
 		{
-			swap_cnt[j]++;
-			whoa = ID_list[j];
-			whob = ID_list[j+1];
-
-			Ta = Temps[j];
-			Tb = Temps[j+1];
-
-			logH  = (modelX_list.at(whoa)->logL - modelX_list.at(whob)->logL)/Tb;
-			logH -= (modelX_list.at(whoa)->logL - modelX_list.at(whob)->logL)/Ta;
-
-			u = log(gsl_ran_flat(r, 0, 1.0));
-			if (u < logH)
+			for (j=0; j<N_Temps-1; j++)
 			{
-				swap[j]++;
-				ID_list[j]   = whob;
-				ID_list[j+1] = whoa;
+				swap_cnt[j]++;
+				whoa = ID_list[j];
+				whob = ID_list[j+1];
+
+				Ta = Temps[j];
+				Tb = Temps[j+1];
+
+				logH  = (modelX_list.at(whoa)->logL - modelX_list.at(whob)->logL)/Tb;
+				logH -= (modelX_list.at(whoa)->logL - modelX_list.at(whob)->logL)/Ta;
+
+				u = log(gsl_ran_flat(r, 0, 1.0));
+				if (u < logH)
+				{
+					swap[j]++;
+					ID_list[j]   = whob;
+					ID_list[j+1] = whoa;
+				}
 			}
 		}
 		/////////////// Update Temperature ladder //////////////////////
@@ -335,46 +338,46 @@ int main(int argc, char **argv)
 		}
 		if (flag_adaptive_temps==1 and i<0)
 		{
-			if (i%t == 0 & i>=-N_BURN+t)
-			{
-				for (j=0; j<N_Temps; j++) f[j] = weight*(double)n_up[j]/(n_up[j] + n_down[j]) + (1-weight)*f_smooth[j];
-			    gsl_interp_accel *acc = gsl_interp_accel_alloc ();
-			    gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, N_Temps);
-			    double f_copy[N_Temps];
-			    double Temps_copy[N_Temps];
-			    double result[N_Temps];
-			    for (j=0; j<N_Temps; j++)
-			    {	// copy to C containers...
-			    	f_copy[j] = f[N_Temps-1-j]; // reverse the order
-			    	Temps_copy[j] = Temps[N_Temps-1-j]; // reverse the order
-			    }
-			    gsl_spline_init (spline, f_copy, Temps_copy, N_Temps);
-			    for (j=1; j<N_Temps-1; j++)
-			    {
-			    	result[j] = gsl_spline_eval (spline, f_smooth[j], acc);
-			    }
-			    gsl_spline_free (spline);
-			    gsl_interp_accel_free (acc);
-
-			    for (j=1; j<N_Temps-1; j++) Temps[j] = result[j];
-
-			    if (i<0)
-			    {
-					for (j=0; j<N_Temps; j++)
-					{	// reset counters
-						n_up[j] = 0;
-						n_down[j] = 0;
-					}
-			    }
-			    //t *= 2;
-			}
+//			if (i%t == 0 & i>=-N_BURN+t)
+//			{
+//				for (j=0; j<N_Temps; j++) f[j] = weight*(double)n_up[j]/(n_up[j] + n_down[j]) + (1-weight)*f_smooth[j];
+//			    gsl_interp_accel *acc = gsl_interp_accel_alloc ();
+//			    gsl_spline *spline = gsl_spline_alloc (gsl_interp_linear, N_Temps);
+//			    double f_copy[N_Temps];
+//			    double Temps_copy[N_Temps];
+//			    double result[N_Temps];
+//			    for (j=0; j<N_Temps; j++)
+//			    {	// copy to C containers...
+//			    	f_copy[j] = f[N_Temps-1-j]; // reverse the order
+//			    	Temps_copy[j] = Temps[N_Temps-1-j]; // reverse the order
+//			    }
+//			    gsl_spline_init (spline, f_copy, Temps_copy, N_Temps);
+//			    for (j=1; j<N_Temps-1; j++)
+//			    {
+//			    	result[j] = gsl_spline_eval (spline, f_smooth[j], acc);
+//			    }
+//			    gsl_spline_free (spline);
+//			    gsl_interp_accel_free (acc);
+//
+//			    for (j=1; j<N_Temps-1; j++) Temps[j] = result[j];
+//
+//			    if (i<0)
+//			    {
+//					for (j=0; j<N_Temps; j++)
+//					{	// reset counters
+//						n_up[j] = 0;
+//						n_down[j] = 0;
+//					}
+//			    }
+//			    //t *= 2;
+//			}
 
 			//Temps = adapt_Temps(Temps, swap, swap_cnt, i + N_BURN);
 			prop->P_Fisher.Temps = Temps;
 			prop->P_DE.Temps = Temps;
-			//for (j=0; j<N_Temps-1; j++) cout << "swap rate[" << j << "]....... " << (double)swap[j]/swap_cnt[j] << endl;
+			//if ((i+N_BURN)%10 == 0) for (j=0; j<N_Temps-1; j++) cout << "swap rate[" << j << "]....... " << (double)swap[j]/swap_cnt[j] << endl;
 //			for (j=0; j<N_Temps; j++) cout << "f[" << j << "]....... " << (double)n_up[j]/(n_up[j] + n_down[j]) << endl;
-//			cout << endl;
+			//cout << endl;
 		}
 
 		// update Fisher matrix proposal distribution
@@ -481,10 +484,16 @@ int main(int argc, char **argv)
 	// handle leftover memory
 	//delete modelX0->wave;
 	delete lisa;
-	for (j=0; j<N_Temps; j++) delete modelX_list[j];
+	for (j=0; j<N_Temps; j++)
+	{
+		delete modelX_list[j];
+	}
 	delete prop;
 	gsl_rng_free (r);
 	delete history;
+	delete Files;
+	delete modelX0;
+	delete model_true;
 
 	// Find out how long the code took to run
 	auto end = chrono::system_clock::now();
