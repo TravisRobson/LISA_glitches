@@ -156,10 +156,10 @@ void TDI::phase_to_tdi(list<vector<complex<double>>> *phase_list, int N_lo, doub
 
 }
 
-double nwip(TDI *a, TDI *b, LISA *lisa)
+double nwip(TDI *a, TDI *b, LISA *lisa, int X_flag)
 {	// Calculate the overlap between two arbitrary TDI objects
 
-	double fi, SnAEi, SnTi;
+	double fi, SnAEi, SnTi, SnXi;
 	double overlap = 0.0;
 	double T = lisa->get_T();
 
@@ -167,7 +167,7 @@ double nwip(TDI *a, TDI *b, LISA *lisa)
 	int N_lo = max(a->get_N_lo(), b->get_N_lo());
 	int N_hi = min(a->get_N_hi(), b->get_N_hi());
 
-	if (N_lo > N_hi) return 0.0; // the signals do not overlap
+	if (N_lo >= N_hi) return 0.0; // the signals do not overlap
 
 	int dN_lo_a = N_lo - a->get_N_lo();
 	int dN_lo_b = N_lo - b->get_N_lo();
@@ -175,17 +175,29 @@ double nwip(TDI *a, TDI *b, LISA *lisa)
 	for (int i=0; i<(N_hi-N_lo); i++)
 	{
 		fi = (N_lo + i)/T;
-		SnAEi = lisa->SnAE(fi);
-		SnTi  = lisa->SnT (fi);
 
-		if (SnAEi != SnAEi or SnTi != SnTi)
+		if (X_flag == 0)
 		{
-			SnAEi = INFINITY;
-			SnTi  = INFINITY;
-		}
+			SnAEi = lisa->SnAE(fi);
+			SnTi  = lisa->SnT (fi);
 
-		overlap += real(a->A[dN_lo_a + i]*conj(b->A[dN_lo_b + i]) + a->E[dN_lo_a + i]*conj(b->E[dN_lo_b + i]))/SnAEi;
-		overlap += real(a->T[dN_lo_a + i]*conj(b->T[dN_lo_b + i]))/SnTi;
+			if (SnAEi != SnAEi or SnTi != SnTi)
+			{
+				SnAEi = INFINITY;
+				SnTi  = INFINITY;
+			}
+
+			overlap += real(a->A[dN_lo_a + i]*conj(b->A[dN_lo_b + i]) + a->E[dN_lo_a + i]*conj(b->E[dN_lo_b + i]))/SnAEi;
+			overlap += real(a->T[dN_lo_a + i]*conj(b->T[dN_lo_b + i]))/SnTi;
+		}
+		else
+		{
+			SnXi = lisa->SnX(fi);
+
+			if (SnXi != SnXi) SnXi = INFINITY;
+
+			overlap += real( a->X[dN_lo_a + i]*conj(b->X[dN_lo_b + i]) )/SnXi;
+		}
 	}
 
 	return 4*overlap/T;

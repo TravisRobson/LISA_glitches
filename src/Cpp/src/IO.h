@@ -26,7 +26,7 @@ struct Files
 };
 
 
-vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struct Files *Files);
+vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struct Files *Files, int X_flag);
 
 
 

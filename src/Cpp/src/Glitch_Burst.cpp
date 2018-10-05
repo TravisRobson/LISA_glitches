@@ -52,11 +52,15 @@ int main(int argc, char **argv)
 	cout << "Beginning Run" << "\n";
 	cout << "T............. " << T/WEEK << " weeks\n";
 
+	ofstream logL_file, out_file;
+	ofstream T1_file, THot_file, ID_file;
+
 	////////////////// Setup command line arguments ///////////////////
 	int N_MCMC, N_BURN, N_undersample, seed;
 	int PT = 0;   // PTMCMC
 	int DB = 0;  // detailed balance test flag
 	int flag_adaptive_temps = 0;
+	int X_flag;
 
 	string input_file;
 
@@ -70,6 +74,7 @@ int main(int argc, char **argv)
 		("a, adaptt",    "Adaptive temperature ladder")
 		("f, inputfile", "Model Data setup file", cxxopts::value<string>(input_file))
 		("s, seed",      "random number generator seed", cxxopts::value<int>(seed)->default_value("1"))
+		("x, xonly",      "X channel only analysis", cxxopts::value<int>(X_flag)->default_value("0"))
 		;
 	auto opts = options.parse(argc, argv);
 
@@ -88,7 +93,7 @@ int main(int argc, char **argv)
 	LISA *lisa = new LISA(T); // setup the LISA orbit
 	//Wavelet *wavelet = parse_config_file(input_file, T, lisa, Files);
 	vector<Model*> models;
-	models = parse_config_file(input_file, &T, lisa, Files);
+	models = parse_config_file(input_file, &T, lisa, Files, X_flag);
 	Model *modelX0 = models.at(0);
 	Model *model_true = models.at(1);
 	cout << "T............. " << T/WEEK << " weeks\n";
@@ -103,7 +108,7 @@ int main(int argc, char **argv)
 	if (PT == 1)
 	{
 		double T0 = 1; // initial temperature
-		double snr_eff = 2.0;
+		double snr_eff = 0.5;
 		T_max = pow(modelX0->wave.snr, 2.0)/pow(snr_eff, 2.0);
 		while (T0 < T_max)
 		{
@@ -120,7 +125,13 @@ int main(int argc, char **argv)
 		Temps[N_Temps-1] = T_max;
 	}
 
-	modelX0->wave.set_Fisher(lisa);
+	// Print temperatures (betas) to file
+	logL_file.open (Files->File_logL);
+	logL_file << N_Temps;
+	for (j=0; j<N_Temps; j++) logL_file << scientific << setprecision(15) << " " << 1/Temps[j];
+	logL_file << endl;
+
+	modelX0->wave.set_Fisher(lisa, X_flag);
 	vector<double> e_vals;
 	vector<vector<double>> e_vecs;
 	for (i=0; i<modelX0->wave.D; i++) vector<double> e_vecs[i];
@@ -155,7 +166,6 @@ int main(int argc, char **argv)
 	double dir;
 	int t = 1000;
 	/////////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 
 	////////////////////// set up Prior and proposal distributions //////////////////////////
@@ -226,15 +236,13 @@ int main(int argc, char **argv)
 	tuple<vector<double>, double, double, string> out;
 	string name;
 
-	ofstream logL_file, out_file;
-	ofstream T1_file, THot_file, ID_file;
+
 	int loc;
 	ProgressBar progressBar(N_MCMC + N_BURN, 70);  // begin status bar
 
 	out_file.open  (Files->File_cold_chain);
 	T1_file.open   (Files->File_T1_chain);
 	THot_file.open (Files->File_Hot_chain);
-	logL_file.open (Files->File_logL);
 	ID_file.open   (Files->File_IDs);
 
 	for (i=-N_BURN; i<N_MCMC; i++)
@@ -263,9 +271,19 @@ int main(int argc, char **argv)
 
 					if (DB == 0)
 					{
-//						modelY.wave.calc_TDI(lisa);
-//						modelY.wave.set_snr(lisa);
-						modelY.set_logL(model_true->wave.tdi, lisa);
+						modelY.wave.calc_TDI(lisa);
+						modelY.wave.set_snr(lisa, X_flag);
+						//cout << Temps[j] << " before " << i << endl;
+						modelY.set_logL(model_true->wave.tdi, lisa, X_flag);
+						//cout << Temps[j] << " after " << i << endl << endl;
+//						if (i==22)
+//						{
+//							cout << i << endl;
+//							cout << "logL.............. " << modelY.logL << endl;
+//							cout << modelY.wave.tdi.get_N_hi() - modelY.wave.tdi.get_N_lo() << endl << endl;
+//							for (int h =0;h<modelY.wave.paramsND.size(); h++) cout << "p[" << h << "]  " << modelY.wave.paramsND[h] << endl;
+//						}
+
 					}
 					else modelY.logL = 1.0;
 
@@ -290,7 +308,7 @@ int main(int argc, char **argv)
 		if ((i+N_BURN)%50 == 0) progressBar.display();
 		if (i==0 & PT == 1)
 		{
-			for (j=0; j<N_Temps; j++)
+			for (j=0; j<N_Temps-1; j++)
 			{
 				swap_cnt[j] = 0;
 				swap[j] = 0;
@@ -386,7 +404,7 @@ int main(int argc, char **argv)
 			for (j=0; j<N_Temps; j++)
 			{
 				who = ID_list[j];
-				modelX_list[who]->wave.set_Fisher(lisa);
+				modelX_list[who]->wave.set_Fisher(lisa, X_flag);
 				for (k=0; k<modelX_list[who]->wave.D; k++) vector<double> e_vecs[k];
 				auto result = modelX_list[who]->wave.get_EigenBS();
 				e_vals = get<0>(result);
@@ -415,6 +433,7 @@ int main(int argc, char **argv)
 				out_file << scientific << setprecision(15) << " " << modelX_list.at(who)->wave.paramsND[k];
 			}
 			out_file << scientific << setprecision(15) << endl;
+			out_file.flush();
 		}
 		if (PT == 1 and i>=0)
 		{
@@ -435,8 +454,10 @@ int main(int argc, char **argv)
 			THot_file << scientific << setprecision(15) << endl;
 
 			// Store the logLs
-			for (j=0; j<N_Temps; j++) logL_file << scientific << setprecision(15) << modelX_list.at(ID_list[j])->logL << " ";
+			logL_file << i;
+			for (j=0; j<N_Temps; j++) logL_file << scientific << setprecision(15) << " " << modelX_list.at(ID_list[j])->logL;
 			logL_file << endl;
+			logL_file.flush();
 
 			for (j=0; j<N_Temps; j++) ID_file << scientific << setprecision(15) << ID_list[j] << " ";
 			ID_file << endl;

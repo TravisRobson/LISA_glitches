@@ -43,7 +43,7 @@ private:
 
 };
 
-double nwip(TDI *a, TDI *b, LISA *lisa);
+double nwip(TDI *a, TDI *b, LISA *lisa, int X_flag);
 
 } /* namespace tdi */
 

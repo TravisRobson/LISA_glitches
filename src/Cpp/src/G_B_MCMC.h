@@ -32,8 +32,8 @@ using namespace ls;
 
 #define t0_lo 0.0/t0_scale
 
-#define tau_lo log(HOUR/3600/tau_scale)
-#define tau_hi log(WEEK/7*2/tau_scale)
+#define tau_lo log(HOUR/3600/10/tau_scale)
+#define tau_hi log(4*HOUR/tau_scale)
 
 #define phi0_lo 0.0
 #define phi0_hi 2*M_PI
@@ -74,7 +74,7 @@ public:
 	virtual ~Model();
 	Model(const Model &src);
 
-	void set_logL(TDI tdi, LISA *lisa);
+	void set_logL(TDI tdi, LISA *lisa, int X_flag);
 
 	Wavelet wave;
 	double logL;

@@ -31,4 +31,5 @@ IO.o : IO.cpp IO.h LISA.h Wavelet.h G_B_MCMC.h
 g_b : $(OBJS) Glitch_Burst.cpp ProgressBar.hpp cxxopts.hpp LISA.h TDI.h IO.h Wavelet.h G_B_MCMC.h Constants.h MorletGabor.h
 	$(CC) $(CCFLAGS) -o g_b Glitch_Burst.cpp $(OBJS) $(INCDIR:%=-I%) $(LIBDIR:%=-L%) $(LIBS:%=-l%)
 
-
+clean: 
+	rm *.o g_b

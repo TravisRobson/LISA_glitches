@@ -13,7 +13,7 @@
 #include <algorithm>
 #include <string>
 #include <complex>
-
+#include <iomanip>
 
 using namespace std;
 
@@ -33,6 +33,11 @@ using namespace tdi;
 
 #include <gsl/gsl_matrix_double.h>
 #include <gsl/gsl_linalg.h>
+#include <gsl/gsl_vector.h>
+//#include <gsl/gsl_eigen.h>
+#include <gsl/gsl_sf.h>
+#include <gsl/gsl_blas.h>
+
 
 namespace mc {
 //
@@ -67,27 +72,120 @@ Model::Model(const Model &src)
 	this->logL = src.logL;
 }
 
-gsl_matrix *invert_a_matrix(gsl_matrix *matrix)
+gsl_matrix *invert_a_matrix(gsl_matrix *matrix, int N)
 {
-    gsl_permutation *p = gsl_permutation_alloc(4);
-    int s;
+//    gsl_permutation *p = gsl_permutation_alloc(N);
+//    int s;
+//
+//    // Compute the LU decomposition of this matrix
+//    gsl_linalg_LU_decomp(matrix, p, &s);
+//
+//    // Compute the  inverse of the LU decomposition
+//    gsl_matrix *inv = gsl_matrix_alloc(N,N);
+//    gsl_linalg_LU_invert(matrix, p, inv);
+//
+//    gsl_permutation_free(p);
 
-    // Compute the LU decomposition of this matrix
-    gsl_linalg_LU_decomp(matrix, p, &s);
+	int i, j;
 
-    // Compute the  inverse of the LU decomposition
-    gsl_matrix *inv = gsl_matrix_alloc(4,4);
-    gsl_linalg_LU_invert(matrix, p, inv);
+	gsl_matrix *cpy		  = gsl_matrix_alloc(N,N);
 
-    gsl_permutation_free(p);
+	// Make a copy
+	for(i=0; i<N; i++)
+	{
+		for(j=0; j<N; j++) gsl_matrix_set(cpy,i,j, gsl_matrix_get(matrix, i, j));
+	}
 
-    return inv;
+	gsl_matrix *V = gsl_matrix_alloc (N,N);
+	gsl_vector *D = gsl_vector_alloc (N);
+	gsl_vector *work = gsl_vector_alloc (N);
+	gsl_matrix *SVDinv	  = gsl_matrix_alloc(N,N);
+	gsl_matrix *Dmat	  = gsl_matrix_alloc(N,N);
+	gsl_matrix *temp      = gsl_matrix_alloc(N, N);
+
+	gsl_linalg_SV_decomp(cpy, V, D, work);
+
+
+	double max, min;
+	max = -0.1;
+	min = INFINITY;
+
+	for (i=0; i<N; i++)
+	{
+		if (gsl_vector_get(D,i) > max) max = gsl_vector_get(D,i);
+
+		if (gsl_vector_get(D,i) < min) min = gsl_vector_get(D,i);
+	}
+
+	//double cond = log10(max/min);
+
+	for (i=0; i<N; i++)
+	{
+		for (j=0; j<N; j++)
+		{
+			if (i == j)
+			{
+				if (gsl_vector_get(D,i) < 1.0e-40)
+				{
+					fprintf(stdout, "Near Singular value!!! ---> %e\n", gsl_vector_get(D,i));
+					gsl_matrix_set(Dmat, i, j, 0.);
+				} else
+				{
+					gsl_matrix_set(Dmat, i, j, 1./gsl_vector_get(D,i));
+				}
+
+			} else
+			{
+				gsl_matrix_set(Dmat, i, j, 0.);
+			}
+		}
+
+	}
+
+	gsl_matrix_transpose(cpy);
+	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, Dmat, cpy,   0.0, temp);
+	gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, V, temp, 0.0, SVDinv);
+
+
+	////////
+
+//	gsl_permutation * permutation = gsl_permutation_alloc(N);
+//	int err=0;
+//	err += gsl_linalg_LU_decomp(GSLmatrix, permutation, &i);
+//	err += gsl_linalg_LU_invert(GSLmatrix, permutation, GSLinvrse);
+//
+//	if(err>0)
+//	{
+//		fprintf(stderr,"GalacticBinaryMath.c:184: WARNING: singluar matrix\n");
+//		fflush(stderr);
+//	}else
+//	{
+//		//copy covariance matrix back into Fisher
+//		for(i=0; i<N; i++)
+//		{
+//			for(j=0; j<N; j++)
+//			{
+//				//matrix[i][j] = gsl_matrix_get(GSLinvrse,i,j);
+//				matrix[i][j] = gsl_matrix_get(SVDinv, i, j);
+//			}
+//		}
+//	}
+//
+	gsl_vector_free(D);
+	gsl_vector_free(work);
+	gsl_matrix_free(V);
+	gsl_matrix_free(Dmat);
+//	gsl_matrix_free(SVDinv);
+	gsl_matrix_free(temp);
+	gsl_matrix_free(cpy);
+
+
+    return SVDinv;
+//    return inv;
 }
 
-void Model::set_logL(TDI data, LISA *lisa)
+void Model::set_logL(TDI data, LISA *lisa, int X_flag)
 {
-	double result;
-
 	if (this->wave.get_name() == "burst")
 	{
 		vector<double> paramsND1 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
@@ -97,7 +195,8 @@ void Model::set_logL(TDI data, LISA *lisa)
 
 		vector<double> paramsND2 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
 								    this->wave.paramsND[IDX_tau], 0.5*M_PI, this->wave.paramsND[IDX_cos_theta],
-									this->wave.paramsND[IDX_phi], -0.25*M_PI, 0.0};
+									//this->wave.paramsND[IDX_phi], -0.25*M_PI, 0.0};
+									this->wave.paramsND[IDX_phi], 0.0, 0.0};
 		Wavelet *A2 = new Wavelet("burst", paramsND2);
 
 		vector<double> paramsND3 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
@@ -107,8 +206,10 @@ void Model::set_logL(TDI data, LISA *lisa)
 
 		vector<double> paramsND4 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
 								    this->wave.paramsND[IDX_tau], 0.5*M_PI, this->wave.paramsND[IDX_cos_theta],
-									this->wave.paramsND[IDX_phi], 0.0, 0.0};
+//									this->wave.paramsND[IDX_phi], 0.0, 0.0};
+									this->wave.paramsND[IDX_phi], -0.25*M_PI, 0.0};
 		Wavelet *A4 = new Wavelet("burst", paramsND4);
+
 
 		A1->calc_TDI(lisa);
 		A2->calc_TDI(lisa);
@@ -116,29 +217,27 @@ void Model::set_logL(TDI data, LISA *lisa)
 		A4->calc_TDI(lisa);
 
 		vector<double> N(4);
-		N[0] = nwip(&data, &A1->tdi, lisa);
-		N[1] = nwip(&data, &A2->tdi, lisa);
-		N[2] = nwip(&data, &A3->tdi, lisa);
-		N[3] = nwip(&data, &A4->tdi, lisa);
-
-
+		N[0] = nwip(&data, &A1->tdi, lisa, X_flag);
+		N[1] = nwip(&data, &A2->tdi, lisa, X_flag);
+		N[2] = nwip(&data, &A3->tdi, lisa, X_flag);
+		N[3] = nwip(&data, &A4->tdi, lisa, X_flag);
 
 		vector<double> v1(4);
 		vector<vector<double>> M(4, v1);
 
-		M[0][0] = nwip(&A1->tdi, &A1->tdi, lisa);
-		M[0][1] = nwip(&A1->tdi, &A2->tdi, lisa);
-		M[0][2] = nwip(&A1->tdi, &A3->tdi, lisa);
-		M[0][3] = nwip(&A1->tdi, &A4->tdi, lisa);
+		M[0][0] = nwip(&A1->tdi, &A1->tdi, lisa, X_flag);
+		M[0][1] = nwip(&A1->tdi, &A2->tdi, lisa, X_flag);
+		M[0][2] = nwip(&A1->tdi, &A3->tdi, lisa, X_flag);
+		M[0][3] = nwip(&A1->tdi, &A4->tdi, lisa, X_flag);
 
-		M[1][1] = nwip(&A2->tdi, &A2->tdi, lisa);
-		M[1][2] = nwip(&A2->tdi, &A3->tdi, lisa);
-		M[1][3] = nwip(&A2->tdi, &A4->tdi, lisa);
+		M[1][1] = nwip(&A2->tdi, &A2->tdi, lisa, X_flag);
+		M[1][2] = nwip(&A2->tdi, &A3->tdi, lisa, X_flag);
+		M[1][3] = nwip(&A2->tdi, &A4->tdi, lisa, X_flag);
 
-		M[2][2] = nwip(&A3->tdi, &A3->tdi, lisa);
-		M[2][3] = nwip(&A3->tdi, &A4->tdi, lisa);
+		M[2][2] = nwip(&A3->tdi, &A3->tdi, lisa, X_flag);
+		M[2][3] = nwip(&A3->tdi, &A4->tdi, lisa, X_flag);
 
-		M[3][3] = nwip(&A4->tdi, &A4->tdi, lisa);
+		M[3][3] = nwip(&A4->tdi, &A4->tdi, lisa, X_flag);
 
 		M[1][0] = M[0][1];
 		M[2][0] = M[0][2];
@@ -164,7 +263,7 @@ void Model::set_logL(TDI data, LISA *lisa)
 	    {
 	        for (int j=0; j<4; ++j) gsl_matrix_set(mat, i, j, M[i][j]);
 	    }
-	    gsl_matrix *inverse = invert_a_matrix(mat);
+	    gsl_matrix *inverse = invert_a_matrix(mat, 4);
 
 	    for (int i=0; i<4; ++i)
 	    {
@@ -193,13 +292,74 @@ void Model::set_logL(TDI data, LISA *lisa)
 		delete A4;
 
 	}
+//	else
+//	{
+//		double result;
+//		result = nwip(&data, &this->wave.tdi, lisa);
+//		//cout << setprecision(15) << "(s|h).......... " << result << " ";
+//		result -= 0.5*pow(this->wave.snr, 2.0);
+//		//cout << "logL.......... " << result << endl;
+//		this->logL = result;
+//	}
+
 	else
 	{
-		result = nwip(&data, &this->wave.tdi, lisa);
+		vector<double> paramsND1 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
+								    this->wave.paramsND[IDX_tau], 0.0};
+		Wavelet *A1 = new Wavelet(this->wave.get_name(), paramsND1);
 
-		result -= 0.5*pow(this->wave.snr, 2.0);
+		vector<double> paramsND2 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
+								    this->wave.paramsND[IDX_tau], 0.5*M_PI};
+		Wavelet *A2 = new Wavelet(this->wave.get_name(), paramsND2);
 
-		this->logL = result;
+		A1->calc_TDI(lisa);
+		A2->calc_TDI(lisa);
+
+		vector<double> N(2);
+		N[0] = nwip(&data, &A1->tdi, lisa, X_flag);
+		N[1] = nwip(&data, &A2->tdi, lisa, X_flag);
+
+		vector<double> v1(2);
+		vector<vector<double>> M(2, v1);
+
+		M[0][0] = nwip(&A1->tdi, &A1->tdi, lisa, X_flag);
+		M[0][1] = nwip(&A1->tdi, &A2->tdi, lisa, X_flag);
+
+		M[1][1] = nwip(&A2->tdi, &A2->tdi, lisa, X_flag);
+
+		M[1][0] = M[0][1];
+
+		gsl_matrix *mat = gsl_matrix_alloc(2,2);
+	    for (int i=0; i<2; ++i)
+	    {
+	        for (int j=0; j<2; ++j) gsl_matrix_set(mat, i, j, M[i][j]);
+	    }
+	    gsl_matrix *inverse = invert_a_matrix(mat, 2);
+
+	    for (int i=0; i<2; ++i)
+	    {
+	        for (int j=0; j<2; ++j)
+			{
+	        	M[i][j] = gsl_matrix_get(inverse, i, j);
+			}
+	    }
+	    gsl_matrix_free(mat);
+	    gsl_matrix_free(inverse);
+	    this->logL = 0.0;
+	    for (int i=0; i<2; i++)
+	    {
+	    	for (int j=0; j<2; j++)
+	    	{
+	    		this->logL += M[i][j]*N[i]*N[j];
+	    	}
+	    }
+	    this->logL *= 0.5;
+
+		delete A1;
+		delete A2;
+
+		//cout << "logL.............. " << this->logL << endl << endl;
+		//this->logL = result;
 	}
 }
 

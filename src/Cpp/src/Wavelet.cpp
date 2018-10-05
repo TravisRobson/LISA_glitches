@@ -71,8 +71,51 @@ void Wavelet::calc_TDI(LISA *lisa)
 	{
 		calc_OP12_TDI(lisa);
 	}
+	else if (this->name == "glitch_OP21")
+	{
+		calc_OP21_TDI(lisa);
+	}
+	else if (this->name == "glitch_OP13")
+	{
+		calc_OP13_TDI(lisa);
+	}
+	else if (this->name == "glitch_OP31")
+	{
+		calc_OP31_TDI(lisa);
+	}
+	else if (this->name == "glitch_OP23")
+	{
+		calc_OP23_TDI(lisa);
+	}
+	else if (this->name == "glitch_OP32")
+	{
+		calc_OP32_TDI(lisa);
+	}
 
-
+	else if (this->name == "glitch_AC12")
+	{
+		calc_AC12_TDI(lisa);
+	}
+	else if (this->name == "glitch_AC21")
+	{
+		calc_AC21_TDI(lisa);
+	}
+	else if (this->name == "glitch_AC13")
+	{
+		calc_AC13_TDI(lisa);
+	}
+	else if (this->name == "glitch_AC31")
+	{
+		calc_AC31_TDI(lisa);
+	}
+	else if (this->name == "glitch_AC23")
+	{
+		calc_AC23_TDI(lisa);
+	}
+	else if (this->name == "glitch_AC32")
+	{
+		calc_AC32_TDI(lisa);
+	}
 
 	else if (this->name == "burst")
 	{
@@ -113,6 +156,7 @@ void Wavelet::calc_burst_TDI(LISA *lisa)
 	int N_nyquist = (int)(0.5/dt*T);
 	int N_hi = (int)((f0 + df)*T);
 	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 16) N_hi = N_lo + 16;
 	this->tdi.set_N_hi(N_hi);
 
 	vector<complex<double>> p12(N_hi - N_lo);
@@ -231,6 +275,7 @@ void Wavelet::calc_burst_TDI(LISA *lisa)
 	fc31 /= (1 - k_dot_r31);
 	fc32 /= (1 - k_dot_r32);
 
+
 	complex<double> jj(0,1.0); // imaginary number
 
 	double f;
@@ -243,13 +288,16 @@ void Wavelet::calc_burst_TDI(LISA *lisa)
 		t1 = 2*M_PI*f/Clight;//*100.;
 		t3 = Psi_FT(f, A, f0, t0, tau, phi0);
 
-		p12[i]  = (fp12 + ellip*fc12)*t3*( exp(-t1*(-Larm + k_dot_x2)*jj) - exp(-t1*k_dot_x1*jj) );
-		p13[i]  = (fp13 + ellip*fc13)*t3*( exp(-t1*(-Larm + k_dot_x3)*jj) - exp(-t1*k_dot_x1*jj) );
-		p23[i]  = (fp23 + ellip*fc23)*t3*( exp(-t1*(-Larm + k_dot_x3)*jj) - exp(-t1*k_dot_x2*jj) );
+		p12[i]  = (fp12 + jj*ellip*fc12)*t3*( exp(-t1*(-Larm + k_dot_x2)*jj) - exp(-t1*k_dot_x1*jj) );
+		p13[i]  = (fp13 + jj*ellip*fc13)*t3*( exp(-t1*(-Larm + k_dot_x3)*jj) - exp(-t1*k_dot_x1*jj) );
+		p23[i]  = (fp23 + jj*ellip*fc23)*t3*( exp(-t1*(-Larm + k_dot_x3)*jj) - exp(-t1*k_dot_x2*jj) );
 
-		p21[i]  = (fp21 + ellip*fc21)*t3*( exp(-t1*(-Larm + k_dot_x1)*jj) - exp(-t1*k_dot_x2*jj) );
-		p31[i]  = (fp31 + ellip*fc31)*t3*( exp(-t1*(-Larm + k_dot_x1)*jj) - exp(-t1*k_dot_x3*jj) );
-		p32[i]  = (fp32 + ellip*fc32)*t3*( exp(-t1*(-Larm + k_dot_x2)*jj) - exp(-t1*k_dot_x3*jj) );
+		p21[i]  = (fp21 + jj*ellip*fc21)*t3*( exp(-t1*(-Larm + k_dot_x1)*jj) - exp(-t1*k_dot_x2*jj) );
+		p31[i]  = (fp31 + jj*ellip*fc31)*t3*( exp(-t1*(-Larm + k_dot_x1)*jj) - exp(-t1*k_dot_x3*jj) );
+		p32[i]  = (fp32 + jj*ellip*fc32)*t3*( exp(-t1*(-Larm + k_dot_x2)*jj) - exp(-t1*k_dot_x3*jj) );
+
+		//cout << t3 << endl;
+
 	}
 
 	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
@@ -288,6 +336,7 @@ void Wavelet::calc_OP12_TDI(LISA *lisa)
 	int N_nyquist = (int)(0.5/dt*T);
 	int N_hi = (int)((f0 + df)*T);
 	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
 	this->tdi.set_N_hi(N_hi);
 
 	// sample the wavelet
@@ -320,6 +369,629 @@ void Wavelet::calc_OP12_TDI(LISA *lisa)
 	delete phase_list;
 }
 
+void Wavelet::calc_OP21_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p21(N_hi - N_lo);
+	double fi;
+	for (int i=0; i<p21.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p21[i] = Psi_FT(fi, A, f0, t0, tau, phi0);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p12(p21.size(), 0.0);
+	vector<complex<double>> p13(p21.size(), 0.0);
+	vector<complex<double>> p31(p21.size(), 0.0);
+	vector<complex<double>> p23(p21.size(), 0.0);
+	vector<complex<double>> p32(p21.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_OP13_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p13(N_hi - N_lo);
+	double fi;
+	for (int i=0; i<p13.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p13[i] = Psi_FT(fi, A, f0, t0, tau, phi0);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p21(p13.size(), 0.0);
+	vector<complex<double>> p12(p13.size(), 0.0);
+	vector<complex<double>> p31(p13.size(), 0.0);
+	vector<complex<double>> p23(p13.size(), 0.0);
+	vector<complex<double>> p32(p13.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_OP31_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p31(N_hi - N_lo);
+	double fi;
+	for (int i=0; i<p31.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p31[i] = Psi_FT(fi, A, f0, t0, tau, phi0);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p21(p31.size(), 0.0);
+	vector<complex<double>> p13(p31.size(), 0.0);
+	vector<complex<double>> p12(p31.size(), 0.0);
+	vector<complex<double>> p23(p31.size(), 0.0);
+	vector<complex<double>> p32(p31.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_OP23_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p23(N_hi - N_lo);
+	double fi;
+	for (int i=0; i<p23.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p23[i] = Psi_FT(fi, A, f0, t0, tau, phi0);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p21(p23.size(), 0.0);
+	vector<complex<double>> p13(p23.size(), 0.0);
+	vector<complex<double>> p31(p23.size(), 0.0);
+	vector<complex<double>> p12(p23.size(), 0.0);
+	vector<complex<double>> p32(p23.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_OP32_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p32(N_hi - N_lo);
+	double fi;
+	for (int i=0; i<p32.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p32[i] = Psi_FT(fi, A, f0, t0, tau, phi0);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p21(p32.size(), 0.0);
+	vector<complex<double>> p13(p32.size(), 0.0);
+	vector<complex<double>> p31(p32.size(), 0.0);
+	vector<complex<double>> p23(p32.size(), 0.0);
+	vector<complex<double>> p12(p32.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_AC12_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar))*(4*sin(f0/fstar)*sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p12(N_hi - N_lo);
+	vector<complex<double>> p21(N_hi - N_lo);
+	double fi;
+	complex<double> jj(0,1.0); // imaginary number
+
+	for (int i=0; i<p12.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p12[i] = -Psi_FT(fi, A, f0, t0, tau, phi0);
+		p21[i] = +Psi_FT(fi, A, f0, t0, tau, phi0)*exp(-jj*fi/fstar);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p13(p12.size(), 0.0);
+	vector<complex<double>> p31(p12.size(), 0.0);
+	vector<complex<double>> p23(p12.size(), 0.0);
+	vector<complex<double>> p32(p12.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_AC21_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar))*(4*sin(f0/fstar)*sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p12(N_hi - N_lo);
+	vector<complex<double>> p21(N_hi - N_lo);
+	double fi;
+	complex<double> jj(0,1.0); // imaginary number
+
+	for (int i=0; i<p12.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p21[i] = -Psi_FT(fi, A, f0, t0, tau, phi0);
+		p12[i] = +Psi_FT(fi, A, f0, t0, tau, phi0)*exp(-jj*fi/fstar);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p13(p12.size(), 0.0);
+	vector<complex<double>> p31(p12.size(), 0.0);
+	vector<complex<double>> p23(p12.size(), 0.0);
+	vector<complex<double>> p32(p12.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_AC13_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar))*(4*sin(f0/fstar)*sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p13(N_hi - N_lo);
+	vector<complex<double>> p31(N_hi - N_lo);
+	double fi;
+	complex<double> jj(0,1.0); // imaginary number
+
+	for (int i=0; i<p13.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p13[i] = -Psi_FT(fi, A, f0, t0, tau, phi0);
+		p31[i] = +Psi_FT(fi, A, f0, t0, tau, phi0)*exp(-jj*fi/fstar);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p12(p13.size(), 0.0);
+	vector<complex<double>> p21(p13.size(), 0.0);
+	vector<complex<double>> p23(p13.size(), 0.0);
+	vector<complex<double>> p32(p13.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_AC31_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar))*(4*sin(f0/fstar)*sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p13(N_hi - N_lo);
+	vector<complex<double>> p31(N_hi - N_lo);
+	double fi;
+	complex<double> jj(0,1.0); // imaginary number
+
+	for (int i=0; i<p13.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p31[i] = -Psi_FT(fi, A, f0, t0, tau, phi0);
+		p13[i] = +Psi_FT(fi, A, f0, t0, tau, phi0)*exp(-jj*fi/fstar);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p12(p13.size(), 0.0);
+	vector<complex<double>> p21(p13.size(), 0.0);
+	vector<complex<double>> p23(p13.size(), 0.0);
+	vector<complex<double>> p32(p13.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_AC23_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar))*(4*sin(f0/fstar)*sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p23(N_hi - N_lo);
+	vector<complex<double>> p32(N_hi - N_lo);
+	double fi;
+	complex<double> jj(0,1.0); // imaginary number
+
+	for (int i=0; i<p23.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p23[i] = -Psi_FT(fi, A, f0, t0, tau, phi0);
+		p32[i] = +Psi_FT(fi, A, f0, t0, tau, phi0)*exp(-jj*fi/fstar);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p13(p23.size(), 0.0);
+	vector<complex<double>> p31(p23.size(), 0.0);
+	vector<complex<double>> p12(p23.size(), 0.0);
+	vector<complex<double>> p21(p23.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
+void Wavelet::calc_AC32_TDI(LISA *lisa)
+{	// Calculate the TDI for an optical path glitch from laser link 1->2
+	this->tdi = TDI();
+
+	double T = lisa->get_T();
+
+	// extract Morlet-Gabor parameters
+	double A, f0, t0, tau, phi0;
+	unpack_glitch_params(this->paramsND, &A, &f0, & t0, &tau, &phi0);
+
+	double rho_est = sqrt(sqrt(M_PI/2)*tau/lisa->SnX(f0))*A*2*fabs(sin(f0/fstar))*(4*sin(f0/fstar)*sin(f0/fstar)); //  estimate an appropriate bandwidth
+
+	// Lowest frequency bin
+	double df = 2.0/tau*pow(rho_est/5, 1.0);
+	int N_lo = (int)((f0 - df)*T);
+	if (N_lo <= 0) N_lo = 1; // make this the lowest positive frequency (don't want to break noise curve code)
+	this->tdi.set_N_lo(N_lo);
+
+	// highest frequency bin
+	int N_nyquist = (int)(0.5/dt*T);
+	int N_hi = (int)((f0 + df)*T);
+	if (N_hi > N_nyquist) N_hi = N_nyquist;
+	if (N_hi - N_lo < 10) N_hi = N_lo + 10;
+	this->tdi.set_N_hi(N_hi);
+
+	// sample the wavelet
+	vector<complex<double>> p23(N_hi - N_lo);
+	vector<complex<double>> p32(N_hi - N_lo);
+	double fi;
+	complex<double> jj(0,1.0); // imaginary number
+
+	for (int i=0; i<p23.size(); i++)
+	{
+		fi = (N_lo+i)/T;
+		p32[i] = -Psi_FT(fi, A, f0, t0, tau, phi0);
+		p23[i] = +Psi_FT(fi, A, f0, t0, tau, phi0)*exp(-jj*fi/fstar);
+	}
+
+	// Construct the other phase variables
+	vector<complex<double>> p13(p23.size(), 0.0);
+	vector<complex<double>> p31(p23.size(), 0.0);
+	vector<complex<double>> p12(p23.size(), 0.0);
+	vector<complex<double>> p21(p23.size(), 0.0);
+
+	list<vector<complex<double>>> *phase_list = new list<vector<complex<double>>>;
+	phase_list->push_back(p12);
+	phase_list->push_back(p21);
+	phase_list->push_back(p13);
+	phase_list->push_back(p31);
+	phase_list->push_back(p23);
+	phase_list->push_back(p32);
+
+	// construct the TDI channels
+	this->tdi.phase_to_tdi(phase_list, N_lo, T);
+
+	delete phase_list;
+}
+
 void unpack_glitch_params(vector<double> paramsND, double *A, double *f0, double *t0, double *tau, double *phi0)
 {
 	*A    = exp(paramsND[IDX_A])*A_scale;
@@ -337,19 +1009,19 @@ void unpack_burst_params(vector<double> paramsND, double *cos_theta, double *phi
 	*ellip     = paramsND[IDX_ellip];
 }
 
-void Wavelet::set_snr(LISA *lisa)
+void Wavelet::set_snr(LISA *lisa, int X_flag)
 {
-	this->snr = sqrt(nwip(&this->tdi, &this->tdi, lisa));
+	this->snr = sqrt(nwip(&this->tdi, &this->tdi, lisa, X_flag));
 }
 
-void Wavelet::adjust_snr(double snr_target, LISA *lisa)
+void Wavelet::adjust_snr(double snr_target, LISA *lisa, int X_flag)
 {
 	this->paramsND[IDX_A] = log(exp(paramsND[IDX_A])*snr_target/this->snr);
 	this->calc_TDI(lisa);
-	this->set_snr(lisa);
+	this->set_snr(lisa, X_flag);
 }
 
-void Wavelet::set_Fisher(LISA *lisa)
+void Wavelet::set_Fisher(LISA *lisa, int X_flag)
 {
 	int i, j;
 	int D = this->paramsND.size(); // number of parameters
@@ -385,7 +1057,7 @@ void Wavelet::set_Fisher(LISA *lisa)
 			TDI tdi_diff_LHS = plus_LHS.tdi - minus_LHS.tdi;
 			tdi_diff_LHS /= 2*epsilon;
 
-			Fisher[i][j] = nwip(&tdi_diff_RHS, &tdi_diff_LHS, lisa);
+			Fisher[i][j] = nwip(&tdi_diff_RHS, &tdi_diff_LHS, lisa, X_flag);
 		}
 	}
 

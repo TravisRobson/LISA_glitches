@@ -1,0 +1,746 @@
+Beginning Run
+T............. 1.6254 weeks
+model burst
+model_snr 8
+model_A 1.0e-20
+model_f0 7.0e-3
+model_t0 0.5*T
+model_tau 0.011*HOUR
+model_phi0 1.1
+model_cos_theta 0.23
+model_phi 2.31
+model_psi 0.45
+model_ellip 0.5
+
+data burst
+data_snr 8
+data_A 1.0e-20
+data_f0 7.0e-3
+data_t0 0.5*T
+data_tau 0.011*HOUR
+data_phi0 1.1
+data_cos_theta 0.23
+data_phi 2.31
+data_psi 0.45
+data_ellip 0.5
+
+File_true_waveform ../Python/tests/Glitch_test.dat
+File_cold_chain ../Python/tests/MCMC_Glitch_test.dat
+File_T1_chain ../Python/tests/MCMC_Glitch_T1.dat
+File_Hot_chain ../Python/tests/MCMC_Glitch_THot.dat
+File_logL ../Python/tests/MCMC_Glitch_logL.dat
+File_IDs ../Python/tests/MCMC_IDs.dat
+File_Temps ../Python/tests/MCMC_Temperatures.dat
+
+
+
+Q............. 1.7417
+initial AET snr.......... 4.88252
+adjusted AET snr......... 8
+T............. 0.0253968 weeks
+modelX0 logL............. 32
+Number of Temperature....... 23
+[>                                                                     ] 0% 0.167s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[===>                                                                  ] 4% 7.068s
+Near Singular value!!! ---> 8.792403e-43
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[======>                                                               ] 9% 13.641s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[==========>                                                           ] 14% 19.668s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[=============>                                                        ] 19% 25.729s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 4.838555e-46
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[=================>                                                    ] 24% 31.479s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 2.507639e-42
+[====================>                                                 ] 29% 37.367s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[=======================>                                              ] 34% 43.333s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[===========================>                                          ] 38% 49.881s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[==============================>                                       ] 43% 58.212s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[==================================>                                   ] 48% 66.551s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[=====================================>                                ] 53% 72.485s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[========================================>                             ] 58% 78.184s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[============================================>                         ] 63% 84.071s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[===============================================>                      ] 68% 90.1s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[===================================================>                  ] 72% 95.889s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[======================================================>               ] 77% 101.761s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[=========================================================>            ] 82% 107.534s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[=============================================================>        ] 87% 113.326s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[================================================================>     ] 92% 119.434s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[====================================================================> ] 97% 125.159s
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+22
+logL.............. 1.08744e-13
+511
+
+22
+logL.............. 1.11351e-09
+511
+
+p[0]  4.36108
+p[1]  4.94808
+22
+logL.............. 0.000574702
+124
+
+22
+logL.............. 0.0440894
+511
+
+p[0]  4.5559
+p[1]  16.4481
+22
+logL.............. 0.157581
+17
+
+22
+logL.............. 8.45108e-27
+24
+
+22
+logL.............. 0.077654
+19
+
+22
+logL.............. 0.149793
+26
+
+22
+logL.............. 3.17643e-12
+511
+
+22
+logL.............. 0.165302
+382
+
+p[0]  0.393985
+p[1]  4.42785
+22
+logL.............. 28.8757
+71
+
+22
+logL.............. 0.907411
+511
+
+22
+logL.............. 0.0546875
+16
+
+22
+logL.............. 3.02386e-15
+226
+
+22
+logL.............. 0.0775497
+19
+
+22
+logL.............. 1.61358e-07
+307
+
+22
+logL.............. 8.6383e-05
+16
+
+22
+logL.............. 9.56545e-24
+260
+
+22
+logL.............. 1.07869e-12
+511
+
+22
+logL.............. 2.35703
+379
+
+22
+logL.............. 2.10519e-13
+22
+
+22
+logL.............. 25.3494
+511
+
+p[0]  4.36125
+p[1]  4.61391
+22
+logL.............. 31.3129
+511
+
+22
+logL.............. 21.3966
+511
+
+22
+logL.............. 1.33905e-25
+511
+
+p[0]  4.38407
+p[1]  16.8856
+22
+logL.............. 3.43038e-12
+118
+
+22
+logL.............. 0.458116
+511
+
+p[0]  0.583936
+p[1]  8.34278
+22
+logL.............. 1.05515e-11
+511
+
+22
+logL.............. 5.17435e-08
+259
+
+22
+logL.............. 3.98217e-13
+511
+
+p[0]  0.393985
+p[1]  4.42572
+22
+logL.............. 31.9884
+511
+
+22
+logL.............. 2.68956e-07
+22
+
+22
+logL.............. 26.7285
+511
+
+p[0]  4.05296
+p[1]  5.96016
+22
+logL.............. 8.28409e-13
+511
+
+22
+logL.............. 2.23003e-25
+511
+
+p[0]  4.38407
+p[1]  16.8856
+22
+logL.............. 0.157579
+17
+
+22
+logL.............. 0.00785987
+55
+
+22
+logL.............. 2.0225e-12
+118
+
+22
+logL.............. 0.000717551
+16
+
+22
+logL.............. 0.428221
+511
+
+p[0]  0.953419
+p[1]  7.57862
+22
+logL.............. 0.50201
+511
+
+p[0]  3.70909
+p[1]  13.1519
+22
+logL.............. 2.76956e-12
+105
+
+22
+logL.............. 6.63976e-13
+265
+
+22
+logL.............. 4.87431e-13
+511
+
+p[0]  0.407546
+p[1]  4.75801
+22
+logL.............. 16.151
+16
+
+22
+logL.............. 30.7573
+511
+
+p[0]  4.36125
+p[1]  4.94904
+22
+logL.............. 0.00380922
+511
+
+22
+logL.............. 159.438
+16
+
+22
+logL.............. 2.43687e-12
+511
+
+22
+logL.............. 0.0129521
+16
+
+22
+logL.............. 2.94792e-12
+511
+
+22
+logL.............. 1.05454e-11
+511
+
+22
+logL.............. 5.9138e-13
+511
+
+22
+logL.............. 6.46613e-13
+238
+
+22
+logL.............. 6.78862e-08
+226
+
+22
+logL.............. 0.000433555
+311
+
+22
+logL.............. 31.0462
+23
+
+22
+logL.............. 0.410736
+511
+
+p[0]  0.0760139
+p[1]  11.8682
+22
+logL.............. 2.6548e-07
+511
+
+p[0]  1.32083
+p[1]  18.9669
+22
+logL.............. 0.0143978
+16
+
+22
+logL.............. 3.43852e-12
+511
+
+22
+logL.............. 2.43753e-05
+16
+
+22
+logL.............. 7.38941e-05
+47
+
+22
+logL.............. 0.0705494
+16
+
+22
+logL.............. 5.8881e-13
+511
+
+22
+logL.............. 7.38413e-13
+511
+
+22
+logL.............. 0.00808784
+511
+
+22
+logL.............. 1.01259
+511
+
+22
+logL.............. 1.04792e-11
+511
+
+22
+logL.............. 2.65587e-07
+511
+
+p[0]  1.32083
+p[1]  18.961
+22
+logL.............. 1.39309e-12
+119
+
+22
+logL.............. 0.25
+511
+
+p[0]  2.47272
+p[1]  4.21725
+22
+logL.............. 1.0812e-11
+499
+
+22
+logL.............. 6.46691e-13
+250
+
+22
+logL.............. 20.8008
+53
+
+22
+logL.............. 31.6222
+271
+
+22
+logL.............. 31.0582
+511
+
+Near Singular value!!! ---> 0.000000e+00
+22
+logL.............. 0.259521
+16
+
+22
+logL.............. 21.4012
+511
+
+22
+logL.............. 5.02395e-12
+511
+
+p[0]  1.78784
+p[1]  17.8658
+22
+logL.............. 0.0707372
+511
+
+22
+logL.............. 0.435852
+511
+
+p[0]  4.28465
+p[1]  11.5392
+22
+logL.............. 6.46672e-13
+247
+
+22
+logL.............. 6.34258e-12
+511
+
+p[0]  2.08342
+p[1]  8.00879
+22
+logL.............. 7.00739e-13
+511
+
+22
+logL.............. 2.42177e-12
+511
+
+22
+logL.............. 5.39802e-12
+511
+
+p[0]  1.60134
+p[1]  12.9898
+22
+logL.............. 5.98483e-13
+117
+
+22
+logL.............. 4.21925e-06
+16
+
+22
+logL.............. 0.0705494
+16
+
+22
+logL.............. 31.9705
+511
+
+22
+logL.............. 14.4308
+173
+
+22
+logL.............. 7.8247e-13
+511
+
+22
+logL.............. 1.57201e-11
+307
+
+22
+logL.............. 5.96698e-13
+117
+
+22
+logL.............. 7.36891e-13
+511
+
+22
+logL.............. 4.73377e-12
+511
+
+p[0]  2.08244
+p[1]  7.73839
+Near Singular value!!! ---> 0.000000e+00
+Near Singular value!!! ---> 0.000000e+00
+[======================================================================] 100% 128.604s
+
+
+Acceptance rate[0]............ 13.2816 %
+Acceptance rate[1]............ 13.7864 %
+Acceptance rate[2]............ 13.9223 %
+Acceptance rate[3]............ 14.9515 %
+Acceptance rate[4]............ 18.0971 %
+Acceptance rate[5]............ 25.6117 %
+Acceptance rate[6]............ 32.9223 %
+Acceptance rate[7]............ 36.3592 %
+Acceptance rate[8]............ 37.7282 %
+Acceptance rate[9]............ 36.6019 %
+Acceptance rate[10]............ 37.5534 %
+Acceptance rate[11]............ 37.6117 %
+Acceptance rate[12]............ 36.7282 %
+Acceptance rate[13]............ 37.1845 %
+Acceptance rate[14]............ 36.7184 %
+Acceptance rate[15]............ 36.5243 %
+Acceptance rate[16]............ 37.0388 %
+Acceptance rate[17]............ 36.5728 %
+Acceptance rate[18]............ 36.9806 %
+Acceptance rate[19]............ 37.3204 %
+Acceptance rate[20]............ 38.3786 %
+Acceptance rate[21]............ 38 %
+Acceptance rate[22]............ 37.2136 %
+
+Swap Acceptance rate[0<->1]....... 76.6667 %
+Swap Acceptance rate[1<->2]....... 86.6667 %
+Swap Acceptance rate[2<->3]....... 93.3333 %
+Swap Acceptance rate[3<->4]....... 76.6667 %
+Swap Acceptance rate[4<->5]....... 33.3333 %
+Swap Acceptance rate[5<->6]....... 70 %
+Swap Acceptance rate[6<->7]....... 93.3333 %
+Swap Acceptance rate[7<->8]....... 96.6667 %
+Swap Acceptance rate[8<->9]....... 100 %
+Swap Acceptance rate[9<->10]....... 100 %
+Swap Acceptance rate[10<->11]....... 100 %
+Swap Acceptance rate[11<->12]....... 100 %
+Swap Acceptance rate[12<->13]....... 100 %
+Swap Acceptance rate[13<->14]....... 100 %
+Swap Acceptance rate[14<->15]....... 100 %
+Swap Acceptance rate[15<->16]....... 100 %
+Swap Acceptance rate[16<->17]....... 100 %
+Swap Acceptance rate[17<->18]....... 100 %
+Swap Acceptance rate[18<->19]....... 100 %
+Swap Acceptance rate[19<->20]....... 100 %
+Swap Acceptance rate[20<->21]....... 100 %
+Swap Acceptance rate[21<->22]....... 100 %
+
+T[0]...... 1
+T[1]...... 1.3
+T[2]...... 1.69
+T[3]...... 2.197
+T[4]...... 2.8561
+T[5]...... 3.71293
+T[6]...... 4.82681
+T[7]...... 6.27485
+T[8]...... 8.15731
+T[9]...... 10.6045
+T[10]...... 13.7858
+T[11]...... 17.9216
+T[12]...... 23.2981
+T[13]...... 30.2875
+T[14]...... 39.3738
+T[15]...... 51.1859
+T[16]...... 66.5417
+T[17]...... 86.5042
+T[18]...... 112.455
+T[19]...... 146.192
+T[20]...... 190.05
+T[21]...... 247.065
+T[22]...... 256
+
+Proposal: Fisher acceptance rate.......... 0.265255
+Proposal: prior acceptance rate........... 0.743074
+Proposal: DE acceptance rate.............. 0.226144
+Proposal: Target acceptance rate.......... 0.849404
+Proposal: TimeShift acceptance rate....... 0.0292592
+Time elapsed..... 128.751 seconds 

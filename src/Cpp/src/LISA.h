@@ -40,8 +40,10 @@ public:
 	// getters
 	double get_T();
 
-private:
 	double T; // observation period
+
+
+private:
 
 };
 

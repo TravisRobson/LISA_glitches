@@ -12,7 +12,7 @@
 
 make
 
-srun ./g_b --nmcmc 10000 --nburn 1000 --ptmcmc --inputfile Input_003.dat &
-srun ./g_b --nmcmc 100000 --nburn 1000 --ptmcmc --inputfile Input_004.dat &
+srun ./g_b --nmcmc 100 --nburn 1000 --ptmcmc --inputfile Input_003.dat &
+srun ./g_b --nmcmc 1000 --nburn 1000 --ptmcmc --inputfile Input_004.dat &
 
 wait

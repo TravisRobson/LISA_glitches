@@ -48,11 +48,26 @@ public:
 	Wavelet(const Wavelet &src, int flag); // copy constructor
 
 	void calc_TDI(LISA *lisa); // construct the TDI for a given wavelet
+
 	void calc_burst_TDI(LISA *lisa);
+
 	void calc_OP12_TDI(LISA *lisa);
-	void set_snr(LISA *lisa);
-	void adjust_snr(double snr_target, LISA *lisa);
-	void set_Fisher(LISA *lisa);
+	void calc_OP21_TDI(LISA *lisa);
+	void calc_OP13_TDI(LISA *lisa);
+	void calc_OP31_TDI(LISA *lisa);
+	void calc_OP23_TDI(LISA *lisa);
+	void calc_OP32_TDI(LISA *lisa);
+
+	void calc_AC12_TDI(LISA *lisa);
+	void calc_AC21_TDI(LISA *lisa);
+	void calc_AC13_TDI(LISA *lisa);
+	void calc_AC31_TDI(LISA *lisa);
+	void calc_AC23_TDI(LISA *lisa);
+	void calc_AC32_TDI(LISA *lisa);
+
+	void set_snr(LISA *lisa, int X_flag);
+	void adjust_snr(double snr_target, LISA *lisa, int X_flag);
+	void set_Fisher(LISA *lisa, int X_flag);
 	tuple <vector<double>,vector<vector<double>>> get_EigenBS();
 
 	void Unwrap_Phase();

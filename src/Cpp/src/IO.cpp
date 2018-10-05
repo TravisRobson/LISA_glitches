@@ -29,7 +29,7 @@ using namespace mc;
 #include <boost/algorithm/string/split.hpp>
 #include <boost/foreach.hpp>
 
-vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struct Files *Files)
+vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struct Files *Files, int X_flag)
 {
 
 	ifstream config_file(input_file, ios::in);
@@ -244,12 +244,10 @@ vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struc
 	}
 	Wavelet *wavelet = new Wavelet(model_name, paramsND); //
 	wavelet->calc_TDI(lisa);
-	wavelet->set_snr(lisa);
-	wavelet->adjust_snr(stod(model_snr), lisa);
-
+	wavelet->set_snr(lisa, X_flag);
+	wavelet->adjust_snr(stod(model_snr), lisa, X_flag);
 
 	Model *modelX0 = new Model(*wavelet);
-	//delete wavelet;
 
 	///////////////////////
 	A = stod(data_A);
@@ -257,14 +255,24 @@ vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struc
 	boost::split(words, data_tau, boost::is_any_of("*"));
 	tau = HOUR*stod(words[0]);
 	double old = (*T);
-	*T = pow(2, ceil(log2(20*tau/dt)) );
+	*T = pow(2, ceil(log2(10*tau/dt)) )*dt;
+
+	if (*T < 0.02*WEEK)
+	{	// Need a lower bound
+		*T = pow(2, ceil(log2( 0.02*WEEK/dt)) )*dt;
+	}
+
+	// update LISA's observation period
+	lisa->T = *T;
+	wavelet->calc_TDI(lisa);
+
 	modelX0->wave.paramsND[IDX_t0] *= (*T)/old;
 	boost::split(words, data_t0, boost::is_any_of("*"));
 	t0 = (*T)*stod(words[0]);
 	phi0 = stod(data_phi0);
 
 	vector<double> paramsND_true;
-	if (model_name.size() == 11)
+	if (data_name.size() == 11)
 	{	// i.e. this is a glitch
 		paramsND_true = {log(A/A_scale), f0/f0_scale, t0/t0_scale, log(tau/tau_scale), phi0};
 	}
@@ -282,16 +290,16 @@ vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struc
 
 	Wavelet *wavelet_true = new Wavelet(data_name, paramsND_true); //
 	wavelet_true->calc_TDI(lisa);
-	wavelet_true->set_snr(lisa);
+	wavelet_true->set_snr(lisa, X_flag);
 	cout << "initial AET snr.......... " << wavelet_true->snr << endl;
-	wavelet_true->adjust_snr(stod(data_snr), lisa);
+	wavelet_true->adjust_snr(stod(data_snr), lisa, X_flag);
 	cout << "adjusted AET snr......... " << wavelet_true->snr << endl;
 
 	Model *model_true = new Model(*wavelet_true);
 	//delete wavelet_true;
 
-	model_true->set_logL(wavelet_true->tdi, lisa);
-	modelX0->set_logL(wavelet_true->tdi, lisa);
+	model_true->set_logL(wavelet_true->tdi, lisa, X_flag);
+	modelX0->set_logL(wavelet_true->tdi, lisa, X_flag);
 
 	vector<Model*> models;
 	models.push_back(modelX0);
@@ -305,13 +313,13 @@ vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struc
 	int i;
 
 	out_file.open(File_true_waveform);
-	for (i=0; i<wavelet->tdi.X.size(); i++)
+	for (i=0; i<wavelet_true->tdi.X.size(); i++)
 	{
-		fi = (i+wavelet->tdi.get_N_lo())/(*T);
+		fi = (i+wavelet_true->tdi.get_N_lo())/(*T);
 
-		Ai = wavelet->tdi.A[i];
-		Ei = wavelet->tdi.E[i];
-		Ti = wavelet->tdi.T[i];
+		Ai = wavelet_true->tdi.A[i];
+		Ei = wavelet_true->tdi.E[i];
+		Ti = wavelet_true->tdi.T[i];
 
 		out_file << scientific << setprecision(15) << fi << " " << real(Ai) << " " << imag(Ai) << " "
 																<< real(Ei) << " " << imag(Ei) << " "
