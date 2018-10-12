@@ -30,8 +30,8 @@ complex<double> Psi_FT(double f, double A, double f0, double t0, double tau, dou
 
 	//complex<double> psi = exp(2.*phi0*j);
 
-	//complex<double> psi = exp(-arg2-j*arg3) + exp(-arg1-j*arg3+2.*phi0*j);
-	complex<double> psi = exp(-arg1-j*arg3+2.*phi0*j);
+	complex<double> psi = exp(-arg2 - j*arg3) + exp(-arg1 - j*arg3 + 2.*phi0*j);
+	//complex<double> psi = exp(-arg1-j*arg3+2.*phi0*j);
 //	psi *= exp(-j*arg3);
 	psi *= 0.5*sqrt(M_PI)*A*tau;
 

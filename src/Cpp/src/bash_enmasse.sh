@@ -12,7 +12,7 @@
 
 make
 
-python CreateInputandBash.py 700 burst 10 15.0e-3 0.011*HOUR priorty ## Generate the Input Files and bash file to run...
+python CreateInputandBash.py 700 burst 10 15.0e-3 0.01*HOUR priority ## Generate the Input Files and bash file to run...
 
 sbatch bash_GliBur_700.sh
 

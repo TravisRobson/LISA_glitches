@@ -153,11 +153,12 @@ void Wavelet::calc_burst_TDI(LISA *lisa)
 	this->tdi.set_N_lo(N_lo);
 
 	// highest frequency bin
-	int N_nyquist = (int)(0.5/dt*T);
+	int N_nyquist = (int)(0.5/dt*T); //cout << N_nyquist/T << endl;
 	int N_hi = (int)((f0 + df)*T);
 	if (N_hi > N_nyquist) N_hi = N_nyquist;
 	if (N_hi - N_lo < 16) N_hi = N_lo + 16;
 	this->tdi.set_N_hi(N_hi);
+	//cout << N_hi/T << endl;
 
 	vector<complex<double>> p12(N_hi - N_lo);
 	vector<complex<double>> p21(N_hi - N_lo);

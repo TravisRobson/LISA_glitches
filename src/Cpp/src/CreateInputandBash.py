@@ -336,38 +336,38 @@ def main():
 
     file.write("make\n\n")
 
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 1000 --ptmcmc --inputfile Input_" + str(idx_start + 0) + ".dat&\n\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 0) + ".dat &\n\n")
+
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 1) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 2) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 3) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 4) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 5) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 6) + ".dat &\n\n")
+
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 7) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 8) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 9) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 10) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 11) + ".dat &\n")
+    file.write("srun --exclusive ./g_b --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 12) + ".dat &\n\n")
+
+
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 0) + ".dat &\n\n")
 # 
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 1) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 2) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 3) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 4) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 5) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 6) + ".dat&\n\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 1) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 2) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 3) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 4) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 5) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 6) + ".dat &\n\n")
 # 
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 7) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 8) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 9) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 10) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 11) + ".dat&\n")
-#     file.write("srun --exclusive ./g_b --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 12) + ".dat&\n\n")
-
-
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 0) + ".dat&\n\n")
-
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 1) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 2) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 3) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 4) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 5) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 6) + ".dat&\n\n")
-
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 7) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 8) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 9) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 10) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 11) + ".dat&\n")
-    file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 50000 --nburn 10000 --ptmcmc --inputfile Input_" + str(idx_start + 12) + ".dat&\n\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 7) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 8) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 9) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 10) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 11) + ".dat &\n")
+#     file.write("srun --exclusive ./g_b --xonly 1 --nmcmc 10000 --nburn 3000 --ptmcmc --inputfile Input_" + str(idx_start + 12) + ".dat &\n\n")
     
     file.write("wait\n")
     

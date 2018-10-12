@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 	if (PT == 1)
 	{
 		double T0 = 1; // initial temperature
-		double snr_eff = 0.5;
+		double snr_eff = 0.05;
 		T_max = pow(modelX0->wave.snr, 2.0)/pow(snr_eff, 2.0);
 		while (T0 < T_max)
 		{
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
 	T1_file.open   (Files->File_T1_chain);
 	THot_file.open (Files->File_Hot_chain);
 	ID_file.open   (Files->File_IDs);
-
+	//wv_file.open   ("../Python/tests/waveforms.dat");
 	for (i=-N_BURN; i<N_MCMC; i++)
 	{
 		++progressBar;
@@ -434,6 +434,8 @@ int main(int argc, char **argv)
 			}
 			out_file << scientific << setprecision(15) << endl;
 			out_file.flush();
+
+
 		}
 		if (PT == 1 and i>=0)
 		{

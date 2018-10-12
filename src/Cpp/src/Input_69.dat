@@ -1,0 +1,27 @@
+model burst
+model_snr 10
+model_A 1.0e-20
+model_f0 15e-3
+model_t0 0.5*T
+model_tau 0.05*HOUR
+model_phi0 1.1
+model_cos_theta 0.23
+model_phi 2.31
+model_psi 0.45
+model_ellip 0.5
+
+data glitch_OP12
+data_snr 10
+data_A 1.0e-20
+data_f0 15e-3
+data_t0 0.5*T
+data_tau 0.05*HOUR
+data_phi0 1.1
+
+File_true_waveform /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_True_Waveform_69.dat
+File_cold_chain /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_Cold_Chain_69.dat
+File_T1_chain /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_T1_Chain_69.dat
+File_Hot_chain /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_Hot_Chain_69.dat
+File_logL /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_logL_69.dat
+File_IDs /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_IDs_69.dat
+File_Temps /mnt/lustrefs/work/travis.robson/CppGlitchBurst/Output/Burst_Temps_69.dat

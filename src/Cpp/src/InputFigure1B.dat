@@ -1,0 +1,26 @@
+model glitch_OP12
+model_snr 8
+model_A 2.0e-20
+model_f0 0.155896
+model_t0 0.5*T
+model_tau 0.002316*HOUR
+model_phi0 1.1
+
+
+data glitch_OP12
+data_snr 8
+data_A 2.0e-20
+data_f0 0.155896
+data_t0 0.5*T
+data_tau 0.002316*HOUR
+data_phi0 1.1
+
+
+File_true_waveform ../Python/tests/Glitch_Figure1B.dat
+File_cold_chain ../Python/tests/MCMC_Glitch_test.dat
+File_T1_chain ../Python/tests/MCMC_Glitch_T1.dat
+File_Hot_chain ../Python/tests/MCMC_Glitch_THot.dat
+File_logL ../Python/tests/MCMC_Glitch_logL.dat
+File_IDs ../Python/tests/MCMC_IDs.dat
+File_Temps ../Python/tests/MCMC_Temperatures.dat
+

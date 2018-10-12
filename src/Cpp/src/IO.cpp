@@ -259,7 +259,7 @@ vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struc
 
 	if (*T < 0.02*WEEK)
 	{	// Need a lower bound
-		*T = pow(2, ceil(log2( 0.02*WEEK/dt)) )*dt;
+		*T = pow(2, ceil(log2( 0.02*WEEK/dt)))*dt;
 	}
 
 	// update LISA's observation period
@@ -313,6 +313,14 @@ vector<Model*> parse_config_file(string input_file, double *T, LISA *lisa, struc
 	int i;
 
 	out_file.open(File_true_waveform);
+	for (i=0; i<wavelet_true->tdi.get_N_lo(); i++)
+	{
+		fi = (i+wavelet_true->tdi.get_N_lo())/(*T);
+
+		out_file << scientific << setprecision(15) << fi << " " << 0 << " " << 0 << " "
+																<< 0 << " " << 0 << " "
+																<< 0 << " " << 0 << "\n";
+	}
 	for (i=0; i<wavelet_true->tdi.X.size(); i++)
 	{
 		fi = (i+wavelet_true->tdi.get_N_lo())/(*T);

@@ -32,7 +32,7 @@ using namespace ls;
 
 #define t0_lo 0.0/t0_scale
 
-#define tau_lo log(HOUR/3600/10/tau_scale)
+#define tau_lo log(1/tau_scale)
 #define tau_hi log(4*HOUR/tau_scale)
 
 #define phi0_lo 0.0

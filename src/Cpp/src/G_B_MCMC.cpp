@@ -295,7 +295,7 @@ void Model::set_logL(TDI data, LISA *lisa, int X_flag)
 //	else
 //	{
 //		double result;
-//		result = nwip(&data, &this->wave.tdi, lisa);
+//		result = nwip(&data, &this->wave.tdi, lisa, X_flag);
 //		//cout << setprecision(15) << "(s|h).......... " << result << " ";
 //		result -= 0.5*pow(this->wave.snr, 2.0);
 //		//cout << "logL.......... " << result << endl;
@@ -309,7 +309,7 @@ void Model::set_logL(TDI data, LISA *lisa, int X_flag)
 		Wavelet *A1 = new Wavelet(this->wave.get_name(), paramsND1);
 
 		vector<double> paramsND2 = {log(A_scale/A_scale), this->wave.paramsND[IDX_f0], this->wave.paramsND[IDX_t0],
-								    this->wave.paramsND[IDX_tau], 0.5*M_PI};
+								    this->wave.paramsND[IDX_tau], -0.5*M_PI};
 		Wavelet *A2 = new Wavelet(this->wave.get_name(), paramsND2);
 
 		A1->calc_TDI(lisa);
